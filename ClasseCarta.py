@@ -6,3 +6,9 @@ class Carta:
         self._coperta = True
         self._assegnataA = Giocatore()
         self._rivelataPermanente = False
+
+    def __str__(self):
+        if self._tipoSpeciale == None:
+            return f"{self._valore} di {self._seme}"
+        else:
+            return f"{self._tipoSpeciale}"
