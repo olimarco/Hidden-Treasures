@@ -1,4 +1,5 @@
 from Carta import Carta
+from random import shuffle
 
 class Mazzo:
     def __init__(self):
@@ -16,3 +17,8 @@ class Mazzo:
         for i in self._carteSpeciali:
             c = Carta(tipoSpeciale=i)
             self._mazzo.append(c)
+
+
+    def mescola(self):
+        if self._mazzo:
+            shuffle(self._mazzo)
