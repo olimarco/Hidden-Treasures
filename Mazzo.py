@@ -18,7 +18,13 @@ class Mazzo:
             c = Carta(tipoSpeciale=i)
             self._mazzo.append(c)
 
-
     def mescola(self):
         if self._mazzo:
             shuffle(self._mazzo)
+
+    def estrai_36(self):
+        if len(self._mazzo) < 36:
+            return []
+        carte_estratte = self._mazzo[:36]
+        self._mazzo = self._mazzo[36:]
+        return carte_estratte
