@@ -28,3 +28,6 @@ class Mazzo:
         carte_estratte = self._mazzo[:36]
         self._mazzo = self._mazzo[36:]
         return carte_estratte
+
+    def __str__(self):
+        return f"Mazzo con {len(self._mazzo)} carte"
