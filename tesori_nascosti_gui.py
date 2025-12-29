@@ -26,6 +26,7 @@ class DialogoNomi(EasyDialog):
 class TesoriNascosti(EasyFrame):
     def __init__(self, title = "Tesori Nascosti - Team 2", width = 1000, height = 1000, background = "#008000"):
         super().__init__(title, width, height, background)
+        self.giocatori = [Giocatore("Giocatore 1"), Giocatore("Giocatore 2")]
         self.griglia_carte = []
         self.pulsanti = []
         self.tempo_inizio = 0
@@ -52,19 +53,15 @@ class TesoriNascosti(EasyFrame):
         dialog = DialogoNomi(self)
         if dialog.modified():
             n1, n2 = dialog.risultato
-            self.label_info["text"] = f"Giocatori: {n1} vs {n2}"
+            self.giocatori = [Giocatore(n1), Giocatore(n2)]
+            self.indice_turno = 0
             self.tempo_inizio = time.time()
             self.timer_in_corso = True
             self.aggiornaTimer()
             self.iniziaRound(n1, n2)
+            self.gestisciTurno()
         else:
             sys.exit()
-            
-
-        self.tempo_inizio = time.time()
-        self.timer_in_corso = True
-        self.aggiornaTimer()
-        self.iniziaRound()
 
     def aggiornaTimer(self):
         if self.timer_in_corso:
@@ -72,9 +69,22 @@ class TesoriNascosti(EasyFrame):
             self.label_timer["text"] = f"Tempo: {tempo_trascorso}s"
             self.after(1000, self.aggiornaTimer)
 
+    def iniziaRound(self):
+        self.griglia_carte = self.estrai_carte(36)
+        for pulsante in self.pulsanti:
+            pulsante["text"] = "?"
+            pulsante["bg"] = "SystemButtonFace"
+            pulsante["state"] = "normal"
+        for g in self.giocatori:
+            g.reset_round()
+        self.gestisciTurno()
 
     
     
+    
+
+    
+
 
 
 if __name__ == "__main__":
