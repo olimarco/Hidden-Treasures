@@ -11,7 +11,11 @@ class Carta:
         if self._tipoSpeciale:
             return f"{self._tipoSpeciale}"
         elif self._valore and self._seme:
-            return f"{self._valore} di {self._seme}"
+            figure = {11:"Jack", 12:"Regina", 13:"Re", 14:"Asso"}
+            if self._valore in figure:
+                return f"{figure[self._valore]} di {self._seme}"
+            else:
+                return f"{self._valore} di {self._seme}"
         return "Carta non valida"
 
     def assegna_carta(self, giocatore):
