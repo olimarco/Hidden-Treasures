@@ -41,7 +41,7 @@ class TesoriNascosti(EasyFrame):
         for r in range(6):
             for c in range(6):
                 indice_carta = r * 6 + c
-                pulsante = pannello_griglia.addButton(text = "?", row = r, column = c, command = lambda x = indice_carta: self.rivela_carta(x))
+                pulsante = pannello_griglia.addButton(text = "?", row = r, column = c, command = lambda x = indice_carta: self.rivelaCarta(x))
                 pulsante["width"] = 6
                 self.pulsanti.append(pulsante)
         self.pulsante_accetta = self.addButton(text = "Accetta (1 PA)", row = 3, column = 0, command = self.azioneAccetta, state = "disabled") 
@@ -111,10 +111,28 @@ class TesoriNascosti(EasyFrame):
     def cambiaTurno(self):
         self.indice_carta_selezionata = None
         for pulsante in self.pulsanti:
-            pulsante["bg"] = "SystemButtonFace"
+            if pulsante["state"] == "normal":
+                pulsante["bg"] = "SystemButtonFace"
         self.indice_turno = 1 - self.indice_turno
         self.gestisciTurno()
 
+    def rivelaCarta(self, indice_carta_selezionata):
+        giocatore_di_turno = self.giocatori[self.indice_turno]
+        if self.indice_carta_selezionata is not None:
+            return
+        if giocatore_di_turno.punti_azione <= 0:
+            return
+        self.indice_carta_selezionata = indice_carta_selezionata
+        for pulsante in self.pulsanti:
+            if pulsante["state"] == "normal":
+                pulsante["bg"] = "SystemButtonFace"
+        if self.indice_turno == 0:
+            colore_attuale = "#87CEFA" 
+        else:
+            colore_attuale = "#FC7868" 
+        self.pulsanti[indice_carta_selezionata]["bg"] = colore_attuale
+        self.pulsanti[indice_carta_selezionata]["text"] = str(self.griglia_carte[indice_carta_selezionata])
+        self.gestisciTurno()
 
     
 
@@ -122,6 +140,8 @@ class TesoriNascosti(EasyFrame):
 
     
     
+
+
 
 
 
