@@ -134,12 +134,22 @@ class TesoriNascosti(EasyFrame):
         self.pulsanti[indice_carta_selezionata]["text"] = str(self.griglia_carte[indice_carta_selezionata])
         self.gestisciTurno()
 
+    def azioneAccetta(self):
+        giocatore_di_turno = self.giocatori[self.indice_turno]
+        giocatore_di_turno.punti_azione -= 1
+        carta_presa = self.griglia_carte[self.indice_carta_selezionata]
+        if self.indice_carta_selezionata is not None:
+            giocatore_di_turno.mano.append(carta_presa)
+            self.pulsanti[self.indice_carta_selezionata]["state"] = "disabled"
+        self.cambiaTurno()
+        
     
 
 
 
     
     
+
 
 
 
