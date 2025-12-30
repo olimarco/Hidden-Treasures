@@ -142,14 +142,19 @@ class TesoriNascosti(EasyFrame):
             giocatore_di_turno.mano.append(carta_presa)
             self.pulsanti[self.indice_carta_selezionata]["state"] = "disabled"
         self.cambiaTurno()
+
+    def azioneRifiuta(self):
+        self.giocatori[self.indice_turno].punti_azione -= 1
+        self.pulsanti[self.indice_carta_selezionata]["text"] = "?"
+        self.cambiaTurno()
         
     
 
 
 
-    
-    
 
+    
+    
 
 
 
