@@ -17,6 +17,10 @@ class Carta:
             else:
                 return f"{self._valore} di {self._seme}"
         return "Carta non valida"
+    
+    def gira_carta(self):
+        if not self._rivelataPermanente:
+            self._coperta = not self._coperta
 
     def assegna_carta(self, giocatore):
         self._assegnataA = giocatore
