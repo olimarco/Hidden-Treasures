@@ -108,10 +108,20 @@ class TesoriNascosti(EasyFrame):
         else:
             self.pulsante_concludi["state"] = "disabled"
             
+    def cambiaTurno(self):
+        self.indice_carta_selezionata = None
+        for pulsante in self.pulsanti:
+            pulsante["bg"] = "SystemButtonFace"
+        self.indice_turno = 1 - self.indice_turno
+        self.gestisciTurno()
+
+
+    
+
+
 
     
     
-
 
 
 
