@@ -27,11 +27,15 @@ class TesoriNascosti(EasyFrame):
     def __init__(self, title = "Tesori Nascosti - Team 2", width = 1000, height = 1000, background = "#008000"):
         super().__init__(title, width, height, background)
         self.giocatori = [Giocatore("Giocatore 1"), Giocatore("Giocatore 2")]
+        self.indice_turno = 0
+        self.indice_carta_selezionata = None
         self.griglia_carte = []
         self.pulsanti = []
         self.tempo_inizio = 0
         self.timer_in_corso = False
-        self.label_info = self.addLabel(text = "In attesa dei giocatori", row = 0, column = 0, columnspan = 4, background = "#FFFF00")
+        self.label_info = self.addLabel(text = "In attesa dei giocatori...", row = 0, column = 0, columnspan = 4)
+        self.label_info["anchor"] = "w"      
+        self.label_info["justify"] = "left"
         self.label_timer = self.addLabel(text = "Tempo: 0s", row = 0, column = 4, columnspan = 2)
         pannello_griglia = self.addPanel(row = 1, column = 0, columnspan = 6, background = "#008000")
         for r in range(6):
@@ -47,9 +51,9 @@ class TesoriNascosti(EasyFrame):
         
         
         
-        self.after(100, self.apri_dialog)
+        self.after(100, self.apriDialog)
 
-    def apri_dialog(self):
+    def apriDialog(self):
         dialog = DialogoNomi(self)
         if dialog.modified():
             n1, n2 = dialog.risultato
@@ -58,7 +62,7 @@ class TesoriNascosti(EasyFrame):
             self.tempo_inizio = time.time()
             self.timer_in_corso = True
             self.aggiornaTimer()
-            self.iniziaRound(n1, n2)
+            self.iniziaRound()
             self.gestisciTurno()
         else:
             sys.exit()
@@ -79,11 +83,37 @@ class TesoriNascosti(EasyFrame):
             g.reset_round()
         self.gestisciTurno()
 
-    
+    def gestisciTurno(self): 
+        giocatore_di_turno = self.giocatori[self.indice_turno]
+        if self.indice_turno == 0:
+            colore_attuale = "#87CEFA"
+        else:
+            colore_attuale = "#FC7868"
+        self.label_info["text"] = f"Turno di {giocatore_di_turno.nome}\n Punti Azione: {giocatore_di_turno.punti_azione}\n Punti Totali: {giocatore_di_turno.punti_totali}\n Mano: {len(giocatore_di_turno.mano)}/5"
+        self.label_info["bg"] = colore_attuale
+        self.pulsante_accetta["bg"] = colore_attuale
+        self.pulsante_rifiuta["bg"] = colore_attuale
+        self.pulsante_cambia["bg"] = colore_attuale
+        self.pulsante_concludi["bg"] = colore_attuale
+        if self.indice_carta_selezionata == None:  
+            self.pulsante_accetta["state"] = "disabled"
+            self.pulsante_rifiuta["state"] = "disabled"
+            self.pulsante_cambia["state"] = "disabled"
+        else: 
+            self.pulsante_accetta["state"] = "normal"
+            self.pulsante_rifiuta["state"] = "normal"
+            self.pulsante_cambia["state"] = "normal"
+        if len(giocatore_di_turno.mano) == 5 and not giocatore_di_turno.concluso:
+            self.pulsante_concludi["state"] = "normal"
+        else:
+            self.pulsante_concludi["state"] = "disabled"
+            
+
     
     
 
-    
+
+
 
 
 
