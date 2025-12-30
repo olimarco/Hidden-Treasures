@@ -22,3 +22,12 @@ class Giocatore:
                 carta.reset()
             except ValueError:
                 return None
+
+    # def calcola_punteggioMano(self):
+        # Usare le funzioni importate da ValidatorePunteggio
+
+    def reset_round(self):
+        for carta in self._mano:
+            carta.reset()
+        self._mano = []
+        self._puntiAzione = 15
