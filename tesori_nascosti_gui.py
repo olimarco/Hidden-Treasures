@@ -23,6 +23,16 @@ class DialogoNomi(EasyDialog):
         self.risultato = (nome1, nome2)
         self.setModified()
 
+class DialogoConcludi(EasyDialog):
+    def __init__(self, parent):
+        self.confermato = False
+        super().__init__(parent, "Concludi Round")
+    def body(self, master):
+        self.addLabel(master, text="L'azione è definitiva.\nPremi OK per confermare. ", row=0, column=0)
+    def apply(self):
+        self.confermato = True
+
+
 class TesoriNascosti(EasyFrame):
     def __init__(self, title = "Tesori Nascosti - Team 2", width = 1000, height = 1000, background = "#008000"):
         super().__init__(title, width, height, background)
@@ -99,14 +109,25 @@ class TesoriNascosti(EasyFrame):
             self.pulsante_accetta["state"] = "disabled"
             self.pulsante_rifiuta["state"] = "disabled"
             self.pulsante_cambia["state"] = "disabled"
+            if len(giocatore_di_turno.mano) == 5 and not giocatore_di_turno.concluso:
+                self.pulsante_concludi["state"] = "normal"
+            else:
+                self.pulsante_concludi["state"] = "disabled"
         else: 
-            self.pulsante_accetta["state"] = "normal"
-            self.pulsante_rifiuta["state"] = "normal"
-            self.pulsante_cambia["state"] = "normal"
-        if len(giocatore_di_turno.mano) == 5 and not giocatore_di_turno.concluso:
-            self.pulsante_concludi["state"] = "normal"
-        else:
+            if len(giocatore_di_turno.mano) < 5:
+                self.pulsante_accetta["state"] = "normal"
+            else:
+                self.pulsante_accetta["state"] = "disabled"
+            if giocatore_di_turno.punti_azione > 5 - len(giocatore_di_turno.mano):
+                self.pulsante_rifiuta["state"] = "normal"
+            else:
+                self.pulsante_rifiuta["state"] = "disabled"
+            if len(giocatore_di_turno.mano) >= 1 and giocatore_di_turno.punti_azione >= 1 + (5 - len(giocatore_di_turno.mano)):
+                self.pulsante_cambia["state"] = "normal"
+            else:
+                self.pulsante_cambia["state"] = "disabled"
             self.pulsante_concludi["state"] = "disabled"
+            
 
     def cambiaTurno(self):
         self.indice_carta_selezionata = None
@@ -125,7 +146,11 @@ class TesoriNascosti(EasyFrame):
                 pulsante["bg"] = "SystemButtonFace"
                 pulsante["text"] = "?"    
                 pulsante["state"] = "normal"
-        self.indice_turno = 1 - self.indice_turno
+        indice_prossimo_turno = 1 - self.indice_turno
+        if self.giocatori[indice_prossimo_turno].concluso:
+            pass 
+        else:
+            self.indice_turno = indice_prossimo_turno
         self.gestisciTurno()
 
     def rivelaCarta(self, indice_carta):
@@ -193,12 +218,22 @@ class TesoriNascosti(EasyFrame):
         self.pulsante_cambia["state"] = "disabled"
         self.pulsante_concludi["state"] = "disabled"
     
+    def azioneConcludi(self):
+        dialogo = DialogoConcludi(self)
+        if not dialogo.confermato:
+            return
+        self.giocatori[self.indice_turno].concluso = True
+        self.pulsante_concludi["state"] = "disabled"
+        if self.giocatori[0].concluso and self.giocatori[1].concluso:
+            self.fineRound()
+        else:
+            self.cambiaTurno()
+
+    
+
     
 
 
-
-    
-    
 
 
 
