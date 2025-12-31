@@ -33,6 +33,9 @@ class TesoriNascosti(EasyFrame):
         self.pulsanti = []
         self.tempo_inizio = 0
         self.timer_in_corso = False
+        self.mappa_possesso = {}
+        self.fase_scambio = False 
+        self.indice_nuova_carta = None 
         self.label_info = self.addLabel(text = "In attesa dei giocatori...", row = 0, column = 0, columnspan = 4)
         self.label_info["anchor"] = "w"      
         self.label_info["justify"] = "left"
@@ -48,9 +51,6 @@ class TesoriNascosti(EasyFrame):
         self.pulsante_rifiuta = self.addButton(text = "Rifiuta (1 PA)", row = 3, column = 1, command = self.azioneRifiuta, state = "disabled")
         self.pulsante_cambia = self.addButton(text = "Cambia (2 PA)", row = 3, column = 2, command = self.azioneCambia, state = "disabled")
         self.pulsante_concludi = self.addButton(text = "Concludi", row = 3, column = 3, command = self.azioneConcludi, state = "disabled")
-        
-        
-        
         self.after(100, self.apriDialog)
 
     def apriDialog(self):
@@ -107,33 +107,52 @@ class TesoriNascosti(EasyFrame):
             self.pulsante_concludi["state"] = "normal"
         else:
             self.pulsante_concludi["state"] = "disabled"
-            
+
     def cambiaTurno(self):
         self.indice_carta_selezionata = None
-        for pulsante in self.pulsanti:
-            if pulsante["state"] == "normal":
+        self.indice_nuova_carta = None
+        self.fase_scambio = False
+        for i, pulsante in enumerate(self.pulsanti):
+            if i in self.mappa_possesso:
+                carta_in_mano = self.mappa_possesso[i]
+                if carta_in_mano == 0:
+                    pulsante["bg"] = "#87CEFA"
+                else:
+                    pulsante["bg"] = "#FC7868" 
+                pulsante["text"] = str(self.griglia_carte[i])
+                pulsante["state"] = "disabled"
+            else:
                 pulsante["bg"] = "SystemButtonFace"
+                pulsante["text"] = "?"    
+                pulsante["state"] = "normal"
         self.indice_turno = 1 - self.indice_turno
         self.gestisciTurno()
 
-    def rivelaCarta(self, indice_carta_selezionata):
+    def rivelaCarta(self, indice_carta):
+        if self.fase_scambio:
+            indice_giocatore = self.mappa_possesso.get(indice_carta)
+            if indice_giocatore == self.indice_turno and indice_carta != self.indice_nuova_carta:
+                giocatore_di_turno = self.giocatori[self.indice_turno]
+                valore_carta = self.griglia_carte[indice_carta]
+                if valore_carta in giocatore_di_turno.mano:
+                    giocatore_di_turno.mano.remove(valore_carta)
+                del self.mappa_possesso[indice_carta]
+                self.pulsanti[indice_carta]["text"] = "?"
+                self.pulsanti[indice_carta]["bg"] = "SystemButtonFace"
+                self.cambiaTurno()
+            return
         giocatore_di_turno = self.giocatori[self.indice_turno]
-        if self.indice_carta_selezionata is not None:
+        if self.indice_carta_selezionata is not None or giocatore_di_turno.punti_azione <= 0:
             return
-        if giocatore_di_turno.punti_azione <= 0:
-            return
-        self.indice_carta_selezionata = indice_carta_selezionata
-        for pulsante in self.pulsanti:
-            if pulsante["state"] == "normal":
-                pulsante["bg"] = "SystemButtonFace"
+        self.indice_carta_selezionata = indice_carta
         if self.indice_turno == 0:
             colore_attuale = "#87CEFA" 
         else:
-            colore_attuale = "#FC7868" 
-        self.pulsanti[indice_carta_selezionata]["bg"] = colore_attuale
-        self.pulsanti[indice_carta_selezionata]["text"] = str(self.griglia_carte[indice_carta_selezionata])
+            colore_attuale = "#FC7868"
+        self.pulsanti[indice_carta]["bg"] = colore_attuale
+        self.pulsanti[indice_carta]["text"] = str(self.griglia_carte[indice_carta])
         self.gestisciTurno()
-
+    
     def azioneAccetta(self):
         giocatore_di_turno = self.giocatori[self.indice_turno]
         giocatore_di_turno.punti_azione -= 1
@@ -141,6 +160,7 @@ class TesoriNascosti(EasyFrame):
         if self.indice_carta_selezionata is not None:
             giocatore_di_turno.mano.append(carta_presa)
             self.pulsanti[self.indice_carta_selezionata]["state"] = "disabled"
+            self.mappa_possesso[self.indice_carta_selezionata] = self.indice_turno
         self.cambiaTurno()
 
     def azioneRifiuta(self):
@@ -148,13 +168,38 @@ class TesoriNascosti(EasyFrame):
         self.pulsanti[self.indice_carta_selezionata]["text"] = "?"
         self.cambiaTurno()
         
+    def azioneCambia(self):
+        giocatore_di_turno = self.giocatori[self.indice_turno]
+        giocatore_di_turno.punti_azione -= 2
+        self.fase_scambio = True
+        self.indice_nuova_carta = self.indice_carta_selezionata
+        nuova_carta = self.griglia_carte[self.indice_carta_selezionata]
+        giocatore_di_turno.mano.append(nuova_carta)
+        self.mappa_possesso[self.indice_carta_selezionata] = self.indice_turno
+        self.pulsanti[self.indice_carta_selezionata]["state"] = "disabled"
+        contatore = 0
+        for indice_carta, indice_giocatore in self.mappa_possesso.items():
+            if self.indice_turno == 0:
+                colore_attuale = "#87CEFA" 
+            else:
+                colore_attuale = "#FC7868"
+            if indice_giocatore == self.indice_turno and indice_carta != self.indice_nuova_carta:
+                self.pulsanti[indice_carta]["state"] = "normal"
+                self.pulsanti[indice_carta]["bg"] = colore_attuale 
+                self.pulsanti[indice_carta]["text"] = str(self.griglia_carte[indice_carta])
+                contatore += 1
+        self.pulsante_accetta["state"] = "disabled"
+        self.pulsante_rifiuta["state"] = "disabled"
+        self.pulsante_cambia["state"] = "disabled"
+        self.pulsante_concludi["state"] = "disabled"
+    
     
 
 
 
+    
+    
 
-    
-    
 
 
 
