@@ -46,10 +46,12 @@ class TesoriNascosti(EasyFrame):
         self.mappa_possesso = {}
         self.fase_scambio = False 
         self.indice_nuova_carta = None 
+        self.numero_round = 1
         self.label_info = self.addLabel(text = "In attesa dei giocatori...", row = 0, column = 0, columnspan = 4)
         self.label_info["anchor"] = "w"      
         self.label_info["justify"] = "left"
-        self.label_timer = self.addLabel(text = "Tempo: 0s", row = 0, column = 4, columnspan = 2)
+        self.label_round = self.addLabel(text = f"Round {self.numero_round}", row = 0, column = 2, columnspan = 3)
+        self.label_timer = self.addLabel(text = "Tempo: 0s", row = 0, column = 5, sticky = "NE")
         pannello_griglia = self.addPanel(row = 1, column = 0, columnspan = 6, background = "#008000")
         for r in range(6):
             for c in range(6):
@@ -85,6 +87,9 @@ class TesoriNascosti(EasyFrame):
 
     def iniziaRound(self):
         self.griglia_carte = self.estrai_carte(36)
+        self.mappa_possesso = {}
+        self.indice_carta_selezionata = None
+        self.fase_scambio = False
         for pulsante in self.pulsanti:
             pulsante["text"] = "?"
             pulsante["bg"] = "SystemButtonFace"
@@ -95,11 +100,13 @@ class TesoriNascosti(EasyFrame):
 
     def gestisciTurno(self): 
         giocatore_di_turno = self.giocatori[self.indice_turno]
+        if not giocatore_di_turno.concluso:
+            giocatore_di_turno.punteggio = giocatore_di_turno.punteggio_totalizzato + sum(giocatore_di_turno.mano)
         if self.indice_turno == 0:
             colore_attuale = "#87CEFA"
         else:
             colore_attuale = "#FC7868"
-        self.label_info["text"] = f"Turno di {giocatore_di_turno.nome}\n Punti Azione: {giocatore_di_turno.punti_azione}\n Punti Totali: {giocatore_di_turno.punti_totali}\n Mano: {len(giocatore_di_turno.mano)}/5"
+        self.label_info["text"] = f"Turno di {giocatore_di_turno.nome}\n Punti Azione: {giocatore_di_turno.punti_azione}\n Punteggio: {giocatore_di_turno.punteggio}\n Mano: {len(giocatore_di_turno.mano)}/5"
         self.label_info["bg"] = colore_attuale
         self.pulsante_accetta["bg"] = colore_attuale
         self.pulsante_rifiuta["bg"] = colore_attuale
@@ -146,11 +153,15 @@ class TesoriNascosti(EasyFrame):
                 pulsante["bg"] = "SystemButtonFace"
                 pulsante["text"] = "?"    
                 pulsante["state"] = "normal"
+        if (self.giocatori[0].concluso or self.giocatori[0].punti_azione == 0) and (self.giocatori[1].concluso or self.giocatori[1].punti_azione == 0):
+            self.fineRound()
+            return
         indice_prossimo_turno = 1 - self.indice_turno
-        if self.giocatori[indice_prossimo_turno].concluso:
+        prossimo_giocatore = self.giocatori[indice_prossimo_turno]
+        if prossimo_giocatore.concluso or prossimo_giocatore.punti_azione <= 0:
             pass 
         else:
-            self.indice_turno = indice_prossimo_turno
+            self.indice_turno = indice_prossimo_turno    
         self.gestisciTurno()
 
     def rivelaCarta(self, indice_carta):
@@ -224,16 +235,30 @@ class TesoriNascosti(EasyFrame):
             return
         self.giocatori[self.indice_turno].concluso = True
         self.pulsante_concludi["state"] = "disabled"
-        if self.giocatori[0].concluso and self.giocatori[1].concluso:
-            self.fineRound()
+        self.cambiaTurno()
+
+    def fineRound(self):
+        self.timer_in_corso = False
+        pausa_timer = time.time()
+        self.messageBox(title = f"Round {self.numero_round} Terminato", message = "La partita non è ancora terminata, state per inziare un nuovo round.")
+        for giocatore in self.giocatori:
+            giocatore.punteggio += giocatore.punti_azione + giocatore.punteggio_totalizzato
+            giocatore.punteggio_totalizzato = giocatore.punteggio
+        if self.giocatori[0].punteggio < 110 and self.giocatori[1].punteggio < 110:
+            self.numero_round += 1
+            self.label_round["text"] = f"Round {self.numero_round}"
+            ripresa_timer = time.time()
+            durata_pausa = ripresa_timer - pausa_timer
+            self.tempo_inizio += durata_pausa
+            self.timer_in_corso = True
+            self.aggiornaTimer()
+            self.iniziaRound()
         else:
-            self.cambiaTurno()
+            self.finePartita()
 
     
 
     
-
-
 
 
 
