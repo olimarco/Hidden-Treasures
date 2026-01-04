@@ -240,11 +240,11 @@ class TesoriNascosti(EasyFrame):
     def fineRound(self):
         self.timer_in_corso = False
         pausa_timer = time.time()
-        self.messageBox(title = f"Round {self.numero_round} Terminato", message = "La partita non è ancora terminata, state per inziare un nuovo round.")
         for giocatore in self.giocatori:
             giocatore.punteggio += giocatore.punti_azione + giocatore.punteggio_totalizzato
             giocatore.punteggio_totalizzato = giocatore.punteggio
         if self.giocatori[0].punteggio < 110 and self.giocatori[1].punteggio < 110:
+            self.messageBox(title = f"Round {self.numero_round} Terminato", message = "La partita non è ancora terminata, state per inziare un nuovo round.")
             self.numero_round += 1
             self.label_round["text"] = f"Round {self.numero_round}"
             ripresa_timer = time.time()
@@ -255,8 +255,38 @@ class TesoriNascosti(EasyFrame):
             self.iniziaRound()
         else:
             self.finePartita()
-
     
+    def finePartita(self):
+        g1 = self.giocatori[0]
+        g2 = self.giocatori[1]
+        if g1.punteggio > g2.punteggio:
+            testo = f"VINCE {g1.nome}!"
+            colore_attuale = "#87CEFA"
+        elif g2.punteggio > g1.punteggio:
+            testo = f"VINCE {g2.nome}!"
+            colore_attuale = "#FC7868"
+        else:
+            if g1.punti_azione > g2.punti_azione:
+                testo = f"VINCE {g1.nome} (Spareggio PA)!"
+                colore_attuale = "#87CEFA"
+            elif g2.punti_azione > g1.punti_azione:
+                testo = f"VINCE {g2.nome} (Spareggio PA)!"
+                colore_attuale = "#FC7868"
+            else:
+                testo = "PAREGGIO!"
+        self.label_info["text"] = f"PARTITA TERMINATA\n{testo}"
+        self.label_info["bg"] = colore_attuale
+        self.pulsante_accetta["state"] = "disabled"
+        self.pulsante_accetta["bg"] = "SystemButtonFace"
+        self.pulsante_rifiuta["state"] = "disabled"
+        self.pulsante_rifiuta["bg"] = "SystemButtonFace"
+        self.pulsante_cambia["state"] = "disabled"
+        self.pulsante_cambia["bg"] = "SystemButtonFace"
+        self.pulsante_concludi["state"] = "disabled"
+        self.pulsante_concludi["bg"] = "SystemButtonFace"
+        for pulsante in self.pulsanti:
+            pulsante["state"] = "disabled"
+            
 
     
 
