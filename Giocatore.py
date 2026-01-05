@@ -24,6 +24,9 @@ class Giocatore:
                 carta.reset()
             except ValueError:
                 return None
+            
+    def get_mano(self):
+        return self._mano
 
     # def calcola_punteggioMano(self):
         # Usare le funzioni importate da ValidatorePunteggio
