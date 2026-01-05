@@ -89,4 +89,25 @@ class Validator:
         if punteggio > miglior_punteggio:
             miglior_punteggio = punteggio
         return miglior_punteggio
+
+    def checkScalaReale(self, carte):
+        carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
+        if len(carte_numeriche) != 5:
+            return False
+        
+        semi = [c._seme for c in carte_numeriche]
+        if len(set(semi)) != 1:
+            return False
+        
+        valori = sorted([c._valore for c in carte_numeriche])
+        if len(set(valorii)) != 5:
+            return False
+        
+        if valori[-1] - valori[0] != 4:
+            return False
+        
+        return 10 in valori
+
+    
+        
         
