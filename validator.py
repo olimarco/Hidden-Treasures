@@ -108,6 +108,14 @@ class Validator:
         
         return 10 in valori
 
+    def checkPoker(self, carte):
+        carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
+        valori = [c._valore for c in carte_numeriche]
+        conteggio = Counter(valori)
+        return max(conteggio.values()) >= 4 if conteggio else False
+
+     
+
     
         
         
