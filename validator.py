@@ -114,7 +114,13 @@ class Validator:
         conteggio = Counter(valori)
         return max(conteggio.values()) >= 4 if conteggio else False
 
-     
+    def checkFull(self, carte):
+        carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
+        valori = [c._valore for c in carte_numeriche]
+        conteggio = Counter(valori)
+        counts = sorted(conteggio.values(), reverse=True)
+        return len(counts) >=2 and counts[0] == 3 and counts[1] >= 2
+    
 
     
         
