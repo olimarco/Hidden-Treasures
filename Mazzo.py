@@ -17,6 +17,7 @@ class Mazzo:
         for i in self._carteSpeciali:
             c = Carta(tipoSpeciale=i)
             self._mazzo.append(c)
+        self.mescola()
 
     def mescola(self):
         if self._mazzo:
