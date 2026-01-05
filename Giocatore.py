@@ -6,6 +6,8 @@ class Giocatore:
         self._mano = []
         self._puntiAzione = 15
         self._punteggio = 0
+        self._punteggio_totalizzato = 0
+        self.concluso = False
 
 
     def aggiungi_carta(self, carta):
@@ -31,3 +33,4 @@ class Giocatore:
             carta.reset()
         self._mano = []
         self._puntiAzione = 15
+        self.concluso = False
