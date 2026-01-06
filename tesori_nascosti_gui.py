@@ -43,7 +43,7 @@ class TesoriNascosti(EasyFrame):
         self.giocatori = [Giocatore("Giocatore 1"), Giocatore("Giocatore 2")]
         self.indice_turno = 0
         self.indice_carta_selezionata = None
-        self.griglia_carte_estratte = []
+        self.griglia_carte_estratte: list[Carta] = []
         self.pulsanti = []
         self.tempo_inizio = 0
         self.timer_in_corso = False
@@ -225,16 +225,21 @@ class TesoriNascosti(EasyFrame):
     
     def azioneAccetta(self):
         giocatore_di_turno = self.giocatori[self.indice_turno]
+
         giocatore_di_turno.punti_azione -= 1
         carta_presa = self.griglia_carte_estratte[self.indice_carta_selezionata]
         if self.indice_carta_selezionata is not None:
-            giocatore_di_turno.mano.append(carta_presa)
+            giocatore_di_turno.aggiungi_carta(carta_presa)
             self.pulsanti[self.indice_carta_selezionata]["state"] = "disabled"
             self.mappa_possesso[self.indice_carta_selezionata] = self.indice_turno
         self.cambiaTurno()
 
     def azioneRifiuta(self):
         self.giocatori[self.indice_turno].punti_azione -= 1
+
+        carta_rifiutata = self.griglia_carte_estratte[self.indice_carta_selezionata]
+        carta_rifiutata.gira_carta()
+        
         self.pulsanti[self.indice_carta_selezionata]["text"] = "?"
         self.cambiaTurno()
         
@@ -244,7 +249,7 @@ class TesoriNascosti(EasyFrame):
         self.fase_scambio = True
         self.indice_nuova_carta = self.indice_carta_selezionata
         nuova_carta = self.griglia_carte_estratte[self.indice_carta_selezionata]
-        giocatore_di_turno.mano.append(nuova_carta)
+        giocatore_di_turno.aggiungi_carta(nuova_carta)
         self.mappa_possesso[self.indice_carta_selezionata] = self.indice_turno
         self.pulsanti[self.indice_carta_selezionata]["state"] = "disabled"
         contatore = 0
