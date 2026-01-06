@@ -1,6 +1,8 @@
 from breezypythongui import EasyFrame, EasyDialog
 import time
 import sys
+from Carta import Carta
+from Mazzo import Mazzo
 
 class DialogoNomi(EasyDialog):
     def __init__(self, parent):
@@ -36,10 +38,12 @@ class DialogoConcludi(EasyDialog):
 class TesoriNascosti(EasyFrame):
     def __init__(self, title = "Tesori Nascosti - Team 2", width = 1000, height = 1000, background = "#008000"):
         super().__init__(title, width, height, background)
+        self.m = Mazzo()
         self.giocatori = [Giocatore("Giocatore 1"), Giocatore("Giocatore 2")]
         self.indice_turno = 0
         self.indice_carta_selezionata = None
-        self.griglia_carte = []
+        self.mazzo = self.m.creaMazzo()
+        self.griglia_carte_estratte = []
         self.pulsanti = []
         self.tempo_inizio = 0
         self.timer_in_corso = False
@@ -47,16 +51,23 @@ class TesoriNascosti(EasyFrame):
         self.fase_scambio = False 
         self.indice_nuova_carta = None 
         self.numero_round = 1
-        self.label_info = self.addLabel(text = "In attesa dei giocatori...", row = 0, column = 0, columnspan = 4)
+        pannello_griglia_label = self.addPanel(row = 0, column = 0, columnspan = 4, background = "#008000")
+        self.label_info = pannello_griglia_label.addLabel(text = "In attesa dei giocatori...", row = 0, column = 0, columnspan = 2)
         self.label_info["anchor"] = "w"      
         self.label_info["justify"] = "left"
-        self.label_round = self.addLabel(text = f"Round {self.numero_round}", row = 0, column = 2, columnspan = 3)
-        self.label_timer = self.addLabel(text = "Tempo: 0s", row = 0, column = 5, sticky = "NE")
-        pannello_griglia = self.addPanel(row = 1, column = 0, columnspan = 6, background = "#008000")
+        self.label_round = pannello_griglia_label.addLabel(text = f"Round {self.numero_round}", row = 0, column = 1, columnspan = 2, sticky = "NW")
+        self.label_timer = pannello_griglia_label.addLabel(text = "Tempo: 0s", row = 0, column = 2, columnspan = 4, sticky = "NW")
+        self.menu = pannello_griglia_label.addMenuBar(row = 0, column = 3)
+        menu = self.menu.addMenu("Menu")
+        menu.addMenuItem("Nuova Partita", command = self.apriDialog)
+        menu.addMenuItem("Classifica", command = self.mostraClassifica)
+
+        pannello_griglia_carte = self.addPanel(row = 1, column = 0, columnspan = 6, background = "#008000")
         for r in range(6):
             for c in range(6):
                 indice_carta = r * 6 + c
-                pulsante = pannello_griglia.addButton(text = "?", row = r, column = c, command = lambda x = indice_carta: self.rivelaCarta(x))
+                pulsante = pannello_griglia_carte.addButton(text = "?", row = r, column = c, command = lambda x = indice_carta: self.rivelaCarta(x))
+                pulsante["height"] = 4
                 pulsante["width"] = 6
                 self.pulsanti.append(pulsante)
         self.pulsante_accetta = self.addButton(text = "Accetta (1 PA)", row = 3, column = 0, command = self.azioneAccetta, state = "disabled") 
@@ -66,10 +77,22 @@ class TesoriNascosti(EasyFrame):
         self.after(100, self.apriDialog)
 
     def apriDialog(self):
+        partita_in_corso = self.timer_in_corso
+        if partita_in_corso:
+            self.timer_in_corso = False
+            pausa_timer = time.time()
         dialog = DialogoNomi(self)
         if dialog.modified():
+            self.timer_in_corso = False
+            self.label_timer["text"] = "Tempo: 0s"
             n1, n2 = dialog.risultato
             self.giocatori = [Giocatore(n1), Giocatore(n2)]
+            self.numero_round = 1
+            self.label_round["text"] = "Round 1"
+            self.pulsante_accetta["bg"] = "SystemButtonFace"
+            self.pulsante_rifiuta["bg"] = "SystemButtonFace"
+            self.pulsante_cambia["bg"] = "SystemButtonFace"
+            self.pulsante_concludi["bg"] = "SystemButtonFace"
             self.indice_turno = 0
             self.tempo_inizio = time.time()
             self.timer_in_corso = True
@@ -77,7 +100,14 @@ class TesoriNascosti(EasyFrame):
             self.iniziaRound()
             self.gestisciTurno()
         else:
-            sys.exit()
+            if partita_in_corso:
+                ripresa_timer = time.time()
+                durata_pausa = ripresa_timer - pausa_timer
+                self.tempo_inizio += durata_pausa
+                self.timer_in_corso = True
+                self.aggiornaTimer()
+            else:
+                sys.exit()
 
     def aggiornaTimer(self):
         if self.timer_in_corso:
@@ -86,7 +116,7 @@ class TesoriNascosti(EasyFrame):
             self.after(1000, self.aggiornaTimer)
 
     def iniziaRound(self):
-        self.griglia_carte = self.estrai_carte(36)
+        self.griglia_carte_estratte = self.m.estrai_36()
         self.mappa_possesso = {}
         self.indice_carta_selezionata = None
         self.fase_scambio = False
@@ -147,7 +177,7 @@ class TesoriNascosti(EasyFrame):
                     pulsante["bg"] = "#87CEFA"
                 else:
                     pulsante["bg"] = "#FC7868" 
-                pulsante["text"] = str(self.griglia_carte[i])
+                pulsante["text"] = str(self.griglia_carte_estratte[i])
                 pulsante["state"] = "disabled"
             else:
                 pulsante["bg"] = "SystemButtonFace"
@@ -169,7 +199,7 @@ class TesoriNascosti(EasyFrame):
             indice_giocatore = self.mappa_possesso.get(indice_carta)
             if indice_giocatore == self.indice_turno and indice_carta != self.indice_nuova_carta:
                 giocatore_di_turno = self.giocatori[self.indice_turno]
-                valore_carta = self.griglia_carte[indice_carta]
+                valore_carta = self.griglia_carte_estratte[indice_carta]
                 if valore_carta in giocatore_di_turno.mano:
                     giocatore_di_turno.mano.remove(valore_carta)
                 del self.mappa_possesso[indice_carta]
@@ -186,13 +216,13 @@ class TesoriNascosti(EasyFrame):
         else:
             colore_attuale = "#FC7868"
         self.pulsanti[indice_carta]["bg"] = colore_attuale
-        self.pulsanti[indice_carta]["text"] = str(self.griglia_carte[indice_carta])
+        self.pulsanti[indice_carta]["text"] = str(self.griglia_carte_estratte[indice_carta])
         self.gestisciTurno()
     
     def azioneAccetta(self):
         giocatore_di_turno = self.giocatori[self.indice_turno]
         giocatore_di_turno.punti_azione -= 1
-        carta_presa = self.griglia_carte[self.indice_carta_selezionata]
+        carta_presa = self.griglia_carte_estratte[self.indice_carta_selezionata]
         if self.indice_carta_selezionata is not None:
             giocatore_di_turno.mano.append(carta_presa)
             self.pulsanti[self.indice_carta_selezionata]["state"] = "disabled"
@@ -209,7 +239,7 @@ class TesoriNascosti(EasyFrame):
         giocatore_di_turno.punti_azione -= 2
         self.fase_scambio = True
         self.indice_nuova_carta = self.indice_carta_selezionata
-        nuova_carta = self.griglia_carte[self.indice_carta_selezionata]
+        nuova_carta = self.griglia_carte_estratte[self.indice_carta_selezionata]
         giocatore_di_turno.mano.append(nuova_carta)
         self.mappa_possesso[self.indice_carta_selezionata] = self.indice_turno
         self.pulsanti[self.indice_carta_selezionata]["state"] = "disabled"
@@ -222,7 +252,7 @@ class TesoriNascosti(EasyFrame):
             if indice_giocatore == self.indice_turno and indice_carta != self.indice_nuova_carta:
                 self.pulsanti[indice_carta]["state"] = "normal"
                 self.pulsanti[indice_carta]["bg"] = colore_attuale 
-                self.pulsanti[indice_carta]["text"] = str(self.griglia_carte[indice_carta])
+                self.pulsanti[indice_carta]["text"] = str(self.griglia_carte_estratte[indice_carta])
                 contatore += 1
         self.pulsante_accetta["state"] = "disabled"
         self.pulsante_rifiuta["state"] = "disabled"
@@ -287,7 +317,7 @@ class TesoriNascosti(EasyFrame):
         for pulsante in self.pulsanti:
             pulsante["state"] = "disabled"
             
-
+    
     
 
 
