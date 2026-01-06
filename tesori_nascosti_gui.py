@@ -2,6 +2,7 @@ from breezypythongui import EasyFrame, EasyDialog
 import time
 import sys
 from Carta import Carta
+from Giocatore import Giocatore
 from Mazzo import Mazzo
 
 class DialogoNomi(EasyDialog):
@@ -38,11 +39,10 @@ class DialogoConcludi(EasyDialog):
 class TesoriNascosti(EasyFrame):
     def __init__(self, title = "Tesori Nascosti - Team 2", width = 1000, height = 1000, background = "#008000"):
         super().__init__(title, width, height, background)
-        self.m = Mazzo()
+        self.mazzo_gioco = Mazzo()
         self.giocatori = [Giocatore("Giocatore 1"), Giocatore("Giocatore 2")]
         self.indice_turno = 0
         self.indice_carta_selezionata = None
-        self.mazzo = self.m.creaMazzo()
         self.griglia_carte_estratte = []
         self.pulsanti = []
         self.tempo_inizio = 0
@@ -116,7 +116,8 @@ class TesoriNascosti(EasyFrame):
             self.after(1000, self.aggiornaTimer)
 
     def iniziaRound(self):
-        self.griglia_carte_estratte = self.m.estrai_36()
+        self.mazzo = self.mazzo_gioco.creaMazzo()
+        self.griglia_carte_estratte = self.mazzo_gioco.estrai_36()
         self.mappa_possesso = {}
         self.indice_carta_selezionata = None
         self.fase_scambio = False
@@ -173,12 +174,13 @@ class TesoriNascosti(EasyFrame):
         for i, pulsante in enumerate(self.pulsanti):
             if i in self.mappa_possesso:
                 carta_in_mano = self.mappa_possesso[i]
+                carta_obj = self.griglia_carte_estratte[i]
+                pulsante["text"] = str(self.griglia_carte_estratte[i])
+                pulsante["state"] = "disabled"
                 if carta_in_mano == 0:
                     pulsante["bg"] = "#87CEFA"
                 else:
-                    pulsante["bg"] = "#FC7868" 
-                pulsante["text"] = str(self.griglia_carte_estratte[i])
-                pulsante["state"] = "disabled"
+                    pulsante["bg"] = "#FC7868"
             else:
                 pulsante["bg"] = "SystemButtonFace"
                 pulsante["text"] = "?"    
@@ -195,28 +197,30 @@ class TesoriNascosti(EasyFrame):
         self.gestisciTurno()
 
     def rivelaCarta(self, indice_carta):
+        giocatore_di_turno = self.giocatori[self.indice_turno]
         if self.fase_scambio:
             indice_giocatore = self.mappa_possesso.get(indice_carta)
             if indice_giocatore == self.indice_turno and indice_carta != self.indice_nuova_carta:
-                giocatore_di_turno = self.giocatori[self.indice_turno]
                 valore_carta = self.griglia_carte_estratte[indice_carta]
                 if valore_carta in giocatore_di_turno.mano:
-                    giocatore_di_turno.mano.remove(valore_carta)
+                    giocatore_di_turno.rimuovi_carta(valore_carta)
                 del self.mappa_possesso[indice_carta]
                 self.pulsanti[indice_carta]["text"] = "?"
                 self.pulsanti[indice_carta]["bg"] = "SystemButtonFace"
                 self.cambiaTurno()
             return
-        giocatore_di_turno = self.giocatori[self.indice_turno]
         if self.indice_carta_selezionata is not None or giocatore_di_turno.punti_azione <= 0:
             return
         self.indice_carta_selezionata = indice_carta
+
+        carta_obj = self.griglia_carte_estratte[indice_carta]
+        carta_obj.gira_carta()
         if self.indice_turno == 0:
             colore_attuale = "#87CEFA" 
         else:
             colore_attuale = "#FC7868"
         self.pulsanti[indice_carta]["bg"] = colore_attuale
-        self.pulsanti[indice_carta]["text"] = str(self.griglia_carte_estratte[indice_carta])
+        self.pulsanti[indice_carta]["text"] = str(carta_obj)
         self.gestisciTurno()
     
     def azioneAccetta(self):
