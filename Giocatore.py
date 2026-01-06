@@ -11,8 +11,6 @@ class Giocatore:
 
 
     def aggiungi_carta(self, carta):
-        # Non dimenticare di disabilitare il pulsante, anche se gli errori
-        # principali vengono gestiti
         if len(self._mano) < 5:
             self._mano.append(carta)
             carta.assegna_carta(self)
@@ -25,8 +23,25 @@ class Giocatore:
             except ValueError:
                 return None
             
-    def get_mano(self):
+    @property
+    def nome(self):
+        return self._nome
+
+    @property
+    def mano(self):
         return self._mano
+
+    @property
+    def punti_azione(self):
+        return self._puntiAzione
+
+    @punti_azione.setter
+    def punti_azione(self, valore):
+        self._puntiAzione = valore
+
+    @property
+    def punti_totali(self):
+        return self._punteggio_totalizzato
 
     # def calcola_punteggioMano(self):
         # Usare le funzioni importate da ValidatorePunteggio
