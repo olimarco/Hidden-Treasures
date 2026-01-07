@@ -69,38 +69,49 @@ class Validator:
      una combinazione tra quelle elencate in ValutaGruppi. Tuttavia non può completare scala, colore o scala reale.
     """
     def gestisciGemma(self, carte):
+    
+
         gemme = [c for c in carte if c._tipoSpeciale == 'G']
         if not gemme:
             return 0
-        
+
         carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
         valori = [c._valore for c in carte_numeriche]
         conteggio = Counter(valori)
 
+        if not conteggio:
+            return 0
+
+        if max(conteggio.values()) < 2:
+            return 0
+
         num_gemme = len(gemme)
         miglior_punteggio = 0
 
-        for valore in range (1,11):
-            conteggio = conteggio.copy()
-            conteggio[valore] += num_gemme
-            counts = sorted(conteggio.values(), reverse=True)
+        for valore_test in conteggio.keys():
+            test_conteggio = conteggio.copy()
+            test_conteggio[valore_test] += num_gemme
+
+            counts = sorted(test_conteggio.values(), reverse=True)
 
             if counts[0] >= 4:
-                return self.PUNTEGGI['poker']
-            elif counts[0] == 3 and len(counts) >1 and counts[1] >= 2:
-                return self.PUNTEGGI['full']
+                punteggio = self.PUNTEGGI['poker']
+            elif counts[0] == 3 and len(counts) > 1 and counts[1] >= 2:
+                punteggio = self.PUNTEGGI['full']
             elif counts[0] == 3:
-                return self.PUNTEGGI['tris']
-            elif counts[0] == 2 and len(counts) > 1 and counts[1] >= 2:
-                return self.PUNTEGGI['doppia_coppia']
+                punteggio = self.PUNTEGGI['tris']
+            elif counts[0] == 2 and len(counts) > 1 and counts[1] == 2:
+                punteggio = self.PUNTEGGI['doppia_coppia']
             elif counts[0] == 2:
-                return self.PUNTEGGI['coppia']
+                punteggio = self.PUNTEGGI['coppia']
             else:
                 punteggio = 0
 
-        if punteggio > miglior_punteggio:
-            miglior_punteggio = punteggio
+            if punteggio > miglior_punteggio:
+                miglior_punteggio = punteggio
+
         return miglior_punteggio
+
     
     """
     metodo per controllare se la mano contiene una scala reale.
