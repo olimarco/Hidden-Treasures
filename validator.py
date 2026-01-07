@@ -146,6 +146,27 @@ class Validator:
         
         return False
 
+
+    def checkTris(self, carte):
+        carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
+        valori = [c._valore for c in carte_numeriche]
+        conteggio = Counter(valori)
+        counts = sorted(conteggio.values(), reverse=True)
+        return counts[0] == 3 if conteggio else False
+
+    def checkDoppiaCoppia(self, carte):
+        carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
+        valori = [c._valore for c in carte_numeriche]
+        conteggio = Counter(valori)
+        counts = sorted(conteggio.values(), reverse=True)
+        return len(counts) >= 2 and counts[0] == 2 and counts[1] == 2
+
+    def checkCoppia (self, carte):
+        carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
+        valori = [c._valore for c in carte_numeriche]
+        conteggio = Counter(valori)
+        return max(conteggio.values()) >=2 if conteggio else False
+
     
         
         
