@@ -18,6 +18,11 @@ class Carta:
                 return f"{self._valore} di {self._seme}"
         return "Carta non valida"
     
+    @property
+    def valore(self):
+        return self._valore
+
+
     def gira_carta(self):
         if not self._rivelataPermanente:
             self._coperta = not self._coperta
