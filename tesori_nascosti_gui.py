@@ -60,7 +60,7 @@ class TesoriNascosti(EasyFrame):
         self.menu = pannello_griglia_label.addMenuBar(row = 0, column = 3)
         menu = self.menu.addMenu("Menu")
         menu.addMenuItem("Nuova Partita", command = self.apriDialog)
-        menu.addMenuItem("Classifica", command = self.mostraClassifica)
+        # menu.addMenuItem("Classifica", command = self.mostraClassifica)
 
         pannello_griglia_carte = self.addPanel(row = 1, column = 0, columnspan = 6, background = "#008000")
         for r in range(6):
@@ -132,7 +132,7 @@ class TesoriNascosti(EasyFrame):
     def gestisciTurno(self): 
         giocatore_di_turno = self.giocatori[self.indice_turno]
         if not giocatore_di_turno.concluso:
-            giocatore_di_turno.punteggio = giocatore_di_turno.punteggio_totalizzato + sum(giocatore_di_turno.mano)
+            giocatore_di_turno.punteggio = giocatore_di_turno.punti_totali + sum(c.valore for c in giocatore_di_turno.mano if c is not None)
         if self.indice_turno == 0:
             colore_attuale = "#87CEFA"
         else:
