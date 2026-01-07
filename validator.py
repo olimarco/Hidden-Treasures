@@ -121,6 +121,34 @@ class Validator:
         counts = sorted(conteggio.values(), reverse=True)
         return len(counts) >=2 and counts[0] == 3 and counts[1] >= 2
     
+    def checkColore (self,carte):
+        carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
+        if len(carte_numeriche) != 5:
+            return False
+        
+        semi = [c._seme for c in carte_numeriche]
+        return len(set(semi)) == 1
+
+    def checkScala(self, carte):
+        carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
+        if len(carte_numeriche) != 5:
+            return False
+        
+        valori = sorted([c._valore for c in carte_numeriche])
+        if len(set(valori)) != 5:
+            return False
+        
+        if valori[-1] - valori[0] != 4:
+            return True
+        
+        if valori == [1, 2, 3, 4, 5]:
+            return True
+        
+        return False
+
+    
+        
+        
 
     
         
