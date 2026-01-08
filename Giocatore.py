@@ -40,6 +40,14 @@ class Giocatore:
         self._puntiAzione = valore
 
     @property
+    def concluso(self):
+        return self._concluso
+    
+    @concluso.setter
+    def concluso(self, valore):
+        self._concluso = valore
+
+    @property
     def punti_totali(self):
         return self._punteggio_totalizzato
 
