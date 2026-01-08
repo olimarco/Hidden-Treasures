@@ -43,6 +43,10 @@ class Giocatore:
     def punti_totali(self):
         return self._punteggio_totalizzato
 
+    @punti_totali.setter
+    def punti_totali(self, valore):
+        self._punteggio_totalizzato = valore
+
     # def calcola_punteggioMano(self):
         # Usare le funzioni importate da ValidatorePunteggio
 
