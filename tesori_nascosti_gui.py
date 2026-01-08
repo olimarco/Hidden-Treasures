@@ -160,7 +160,7 @@ class TesoriNascosti(EasyFrame):
                 self.pulsante_rifiuta["state"] = "normal"
             else:
                 self.pulsante_rifiuta["state"] = "disabled"
-            if len(giocatore_di_turno.mano) >= 1 and giocatore_di_turno.punti_azione >= 1 + (5 - len(giocatore_di_turno.mano)):
+            if len(giocatore_di_turno.mano) >= 1 and giocatore_di_turno.punti_azione >= 7 - len(giocatore_di_turno.mano):
                 self.pulsante_cambia["state"] = "normal"
             else:
                 self.pulsante_cambia["state"] = "disabled"
