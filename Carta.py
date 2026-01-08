@@ -4,6 +4,7 @@ class Carta:
         self._seme = seme
         self._tipoSpeciale = tipoSpeciale
         self._coperta = True
+        assengnaA = None
         self._rivelataPermanente = False
 
     def __str__(self):
@@ -21,6 +22,8 @@ class Carta:
     def valore(self):
         return self._valore
 
+    def assegna_carta(self, giocatore):
+        self._assegnataA = giocatore
 
     def gira_carta(self):
         if not self._rivelataPermanente:
