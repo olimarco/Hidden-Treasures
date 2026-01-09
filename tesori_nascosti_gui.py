@@ -1,9 +1,12 @@
 from breezypythongui import EasyFrame, EasyDialog
+from tkinter import PhotoImage
+from PIL import Image, ImageTk
 import time
 import sys
 from Carta import Carta
 from Giocatore import Giocatore
 from Mazzo import Mazzo
+import os 
 
 class DialogoNomi(EasyDialog):
     def __init__(self, parent):
@@ -66,9 +69,14 @@ class TesoriNascosti(EasyFrame):
         for r in range(6):
             for c in range(6):
                 indice_carta = r * 6 + c
-                pulsante = pannello_griglia_carte.addButton(text = "?", row = r, column = c, command = lambda x = indice_carta: self.rivelaCarta(x))
-                pulsante["height"] = 4
-                pulsante["width"] = 6
+                pulsante = pannello_griglia_carte.addButton(text = "", row = r, column = c, command = lambda x = indice_carta: self.rivelaCarta(x))
+                pulsante["height"] = 0
+                pulsante["width"] = 0
+                percorso = self.ottieni_percorso_immagini("retro_carta_rossa_8bit.png")
+                foto = self.carica_immagine(percorso)
+                pulsante["image"] = foto
+                pulsante.image = foto
+
                 self.pulsanti.append(pulsante)
         self.pulsante_accetta = self.addButton(text = "Accetta (1 PA)", row = 3, column = 0, command = self.azioneAccetta, state = "disabled") 
         self.pulsante_rifiuta = self.addButton(text = "Rifiuta (1 PA)", row = 3, column = 1, command = self.azioneRifiuta, state = "disabled")
@@ -193,10 +201,15 @@ class TesoriNascosti(EasyFrame):
                 if proprietario == indice_attivo:
                     pulsante["text"] = str(carta_obj)
                 else:
-                    pulsante["text"] = "?"
+                    percorso = self.ottieni_percorso_immagini("retro_carta_rossa_8bit.png")
+                    foto = self.carica_immagine(percorso)
+                    pulsante["image"] = foto
+                    pulsante.image = foto
             else:
-                pulsante["bg"] = "SystemButtonFace"
-                pulsante["text"] = "?"    
+                percorso = self.ottieni_percorso_immagini("retro_carta_rossa_8bit.png")
+                foto = self.carica_immagine(percorso)
+                pulsante["image"] = foto
+                pulsante.image = foto
                 if self.giocatori[indice_attivo].punti_azione > 0:
                     pulsante["state"] = "normal"
                 else:
@@ -231,7 +244,16 @@ class TesoriNascosti(EasyFrame):
         else:
             colore_attuale = "#FC7868"
         self.pulsanti[indice_carta]["bg"] = colore_attuale
-        self.pulsanti[indice_carta]["text"] = str(carta_obj)
+        percorso = self.ottieni_percorso_immagini(carta_obj)
+        try:
+            self.pulsanti[indice_carta]["width"] = 0
+            self.pulsanti[indice_carta]["height"] = 0
+            foto = self.carica_immagine(percorso)
+            self.pulsanti[indice_carta]["image"] = foto
+            self.pulsanti[indice_carta].image = foto
+        except Exception as e:
+            print({e})
+            self.pulsanti[indice_carta]["text"] = str(carta_obj)
         self.gestisciTurno()
 
     def azioneAccetta(self):
@@ -335,8 +357,19 @@ class TesoriNascosti(EasyFrame):
         for pulsante in self.pulsanti:
             pulsante["state"] = "disabled"
 
-
-
+    def ottieni_percorso_immagini(self, carta):
+        if isinstance(carta, str):
+            nome_file = f"retro_carta_rossa_8bit.png"
+        elif carta.tipoSpeciale:
+            nome_file = f"{carta.tipoSpeciale.lower()}.png"
+        elif carta.valore:
+            nome_file = f"{carta.valore}_di_{carta.seme.lower()}.png"
+        return os.path.join("Immagini_mazzo", nome_file)
+    
+    def carica_immagine(self, percorso):
+        immagine_pil = Image.open(percorso)
+        immagine_ridimensionata = immagine_pil.resize((55, 70), Image.Resampling.LANCZOS)
+        return ImageTk.PhotoImage(immagine_ridimensionata)
 
 
 
