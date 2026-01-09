@@ -22,6 +22,10 @@ class Carta:
     def valore(self):
         return self._valore
 
+    @property
+    def seme(self):
+        return self._seme
+
     def assegna_carta(self, giocatore):
         self._assegnataA = giocatore
 
