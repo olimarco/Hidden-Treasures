@@ -31,15 +31,15 @@ class Validator:
     
 #Richiama i metodi per controllare se sono presenti le scale, i colori e le scale reali
     def valutaScaleColori(self, carte):
-        carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
+        carte_numeriche = [c for c in carte if c.tipoSpeciale is None]
         if len(carte_numeriche) != 5:
             return 0
 
-        if self.checkScalaReale(carte):
+        if self.checkScalaReale(carte_numeriche):
             return self.PUNTEGGI['scala_reale']
-        if self.checkColore(carte):
+        if self.checkColore(carte_numeriche):
             return self.PUNTEGGI['colore']
-        if self.checkScala(carte):
+        if self.checkScala(carte_numeriche):
             return self.PUNTEGGI['scala']
         
         return 0
@@ -47,45 +47,49 @@ class Validator:
 #Richiama i metodi per controllare se è presente un poker, full, tris, doppia coppia, coppia. Se tutti sono false ritorna 0 (nessuna)
     def valutaGruppi(self, carte):
         punteggio_gemma = self.gestisciGemma(carte)
+
+        carte_numeriche = [c for c in carte if c.tipoSpeciale is None]
+        if not carte_numeriche:
+            return punteggio_gemma
+
         punteggio_normale = 0
-        if self.checkPoker(carte):
+        if self.checkPoker(carte_numeriche):
             punteggio_normale = self.PUNTEGGI['poker']
-        elif self.checkFull(carte):
+        elif self.checkFull(carte_numeriche):
             punteggio_normale = self.PUNTEGGI['full']
-        elif self.checkTris(carte):
+        elif self.checkTris(carte_numeriche):
             punteggio_normale = self.PUNTEGGI['tris']
-        elif self.checkDoppiaCoppia(carte):
+        elif self.checkDoppiaCoppia(carte_numeriche):
             punteggio_normale = self.PUNTEGGI['doppia_coppia']
-        elif self.checkCoppia(carte):
+        elif self.checkCoppia(carte_numeriche):
             punteggio_normale = self.PUNTEGGI['coppia']
         else:
             punteggio_normale = 0
         
         return max(punteggio_gemma, punteggio_normale)
 
-    """
-    metodo per gestire la carta speciale gemma. La gemma viene trattata come un jolly 
-    che assume un valore da 1 a 10 (nessun seme) per creare o migliorare
-     una combinazione tra quelle elencate in ValutaGruppi. Tuttavia non può completare scala, colore o scala reale.
-    """
+"""
+metodo per gestire la carta speciale gemma. La gemma viene trattata come un jolly 
+che assume un valore da 1 a 10 (nessun seme) per creare o migliorare
+ una combinazione tra quelle elencate in ValutaGruppi. Tuttavia non può completare scala, colore o scala reale.
+"""
     def gestisciGemma(self, carte):
-    
-
-        gemme = [c for c in carte if c._tipoSpeciale == 'G']
+        gemme = [c for c in carte if c.tipoSpeciale in ['G', 'Gemma']]
         if not gemme:
             return 0
 
-        carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
-        valori = [c._valore for c in carte_numeriche]
+        carte_numeriche = [c for c in carte if c.tipoSpeciale is None]
+        valori = [c.valore for c in carte_numeriche if c.valore is not None]
         conteggio = Counter(valori)
 
         if not conteggio:
             return 0
 
+        num_gemme = len(gemme)
+
         if max(conteggio.values()) < 2:
             return 0
 
-        num_gemme = len(gemme)
         miglior_punteggio = 0
 
         for valore_test in conteggio.keys():
@@ -112,22 +116,20 @@ class Validator:
 
         return miglior_punteggio
 
-    
-    """
-    metodo per controllare se la mano contiene una scala reale.
-    Se sono 5 carte, dello stesso seme e valori consecutivi
-    (come 6,7,8,9,10) ritorna True.
-    """    
-    def checkScalaReale(self, carte):
-        carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
+"""
+metodo per controllare se la mano contiene una scala reale.
+Se sono 5 carte, dello stesso seme e valori consecutivi
+(come 6,7,8,9,10) ritorna True.
+"""    
+    def checkScalaReale(self, carte_numeriche):
         if len(carte_numeriche) != 5:
             return False
         
-        semi = [c._seme for c in carte_numeriche]
+        semi = [c.seme for c in carte_numeriche]
         if len(set(semi)) != 1:
             return False
         
-        valori = sorted([c._valore for c in carte_numeriche])
+        valori = sorted([c.valore for c in carte_numeriche])
         if len(set(valori)) != 5:
             return False
         
@@ -135,57 +137,53 @@ class Validator:
             return False
         
         return 10 in valori
-    
-    """
-    metodo per controllare se la mano contiene un poker.
-    Se sono almeno 4 carte di valore uguale ritorna [True]
-    """
-    def checkPoker(self, carte):
-        carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
-        valori = [c._valore for c in carte_numeriche]
+
+"""
+metodo per controllare se la mano contiene un poker.
+Se sono almeno 4 carte di valore uguale ritorna [True]
+"""
+    def checkPoker(self, carte_numeriche):
+        valori = [c.valore for c in carte_numeriche]
         conteggio = Counter(valori)
         return max(conteggio.values()) >= 4 if conteggio else False
 
-    """
-    metodo per controllare se la mano contiene un full.
-    Attraverso Counter si verifica quante volte appare ogni valore.
-    Un full ha frequenze 3 e 2, quindi controlla che la frequenza
-    più alta sia 3 e che la seconda più alta sia 2.
-    Ritorna True se le condizioni sono soddisfatte,
-    False altrimenti.
-    """
-    def checkFull(self, carte):
-        carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
-        valori = [c._valore for c in carte_numeriche]
+"""
+metodo per controllare se la mano contiene un full.
+Attraverso Counter si verifica quante volte appare ogni valore.
+Un full ha frequenze 3 e 2, quindi controlla che la frequenza
+più alta sia 3 e che la seconda più alta sia 2.
+Ritorna True se le condizioni sono soddisfatte,
+ False altrimenti.
+"""
+    def checkFull(self, carte_numeriche):
+        valori = [c.valore for c in carte_numeriche]
         conteggio = Counter(valori)
         counts = sorted(conteggio.values(), reverse=True)
-        return len(counts) >=2 and counts[0] == 3 and counts[1] >= 2
+        return len(counts) >= 2 and counts[0] == 3 and counts[1] >= 2
     
-    """
-    metodo per controllare se la mano contiene un colore.
-    Se sono 5 carte dello stesso seme indipendamente dal valore ritorna True
-    """
-    def checkColore (self,carte):
-        carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
+"""
+metodo per controllare se la mano contiene un colore.
+Se sono 5 carte dello stesso seme indipendamente dal valore ritorna True
+"""
+    def checkColore (self, carte_numeriche):
         if len(carte_numeriche) != 5:
             return False
         
-        semi = [c._seme for c in carte_numeriche]
+        semi = [c.seme for c in carte_numeriche]
         return len(set(semi)) == 1
 
-    """
-    metodo per controllare se la mano contiene una scala.
-    Se sono 5 carte in sequenza indipendamente dal seme ritorna True.
-    Vengono inoltre gestiti due casi:
-    - uno evita i duplicati, una scala non può avere valori ripetuti
-    - uno gestisce la scala bassa (1,2,3,4,5) come caso speciale
-    """
-    def checkScala(self, carte):
-        carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
+"""
+metodo per controllare se la mano contiene una scala.
+Se sono 5 carte in sequenza indipendamente dal seme ritorna True.
+Vengono inoltre gestiti due casi:
+- uno evita i duplicati, una scala non può avere valori ripetuti
+- uno gestisce la scala bassa (1,2,3,4,5) come caso speciale
+"""
+    def checkScala(self, carte_numeriche):
         if len(carte_numeriche) != 5:
             return False
         
-        valori = sorted([c._valore for c in carte_numeriche])
+        valori = sorted([c.valore for c in carte_numeriche])
         if len(set(valori)) != 5:
             return False
         
@@ -197,36 +195,33 @@ class Validator:
         
         return False
 
-    """
-    metodo per controllare se la mano contiene un tris.
-    Se sono 3 carte dello stesso valore
-    ma di seme diverso ritorna True
-    """
-    def checkTris(self, carte):
-        carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
-        valori = [c._valore for c in carte_numeriche]
+"""
+metodo per controllare se la mano contiene un tris.
+Se sono 3 carte dello stesso valore
+ma di seme diverso ritorna True
+"""
+    def checkTris(self, carte_numeriche):
+        valori = [c.valore for c in carte_numeriche]
         conteggio = Counter(valori)
         counts = sorted(conteggio.values(), reverse=True)
         return counts[0] == 3 if conteggio else False
 
-    """
-    metodo per controllare se la mano contiene una doppia coppia.
-    Se sono 2 coppie distinte (tramite counter frequenze: 2, 2, 1)
-    e la quinta carta è diversa dalle altre 4 ritorna True
-    """
-    def checkDoppiaCoppia(self, carte):
-        carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
-        valori = [c._valore for c in carte_numeriche]
+"""
+metodo per controllare se la mano contiene una doppia coppia.
+Se sono 2 coppie distinte (tramite counter frequenze: 2, 2, 1)
+e la quinta carta è diversa dalle altre 4 ritorna True
+"""
+    def checkDoppiaCoppia(self, carte_numeriche):
+        valori = [c.valore for c in carte_numeriche]
         conteggio = Counter(valori)
         counts = sorted(conteggio.values(), reverse=True)
         return len(counts) >= 2 and counts[0] == 2 and counts[1] == 2
 
-    """
-    metodo per controllare se la mano contiene una coppia.
-    Se sono 2 carte dello stesso valore ritorna True
-    """
-    def checkCoppia (self, carte):
-        carte_numeriche = [c for c in carte if c._tipoSpeciale is None]
-        valori = [c._valore for c in carte_numeriche]
+"""
+metodo per controllare se la mano contiene una coppia.
+Se sono 2 carte dello stesso valore ritorna True
+"""
+    def checkCoppia (self, carte_numeriche):
+        valori = [c.valore for c in carte_numeriche]
         conteggio = Counter(valori)
-        return max(conteggio.values()) >=2 if conteggio else False
+        return max(conteggio.values()) >= 2 if conteggio else False
