@@ -26,6 +26,10 @@ class Carta:
     def seme(self):
         return self._seme
 
+    @property
+    def tipoSpeciale(self):
+        return self._tipoSpeciale
+
     def assegna_carta(self, giocatore):
         self._assegnataA = giocatore
 
