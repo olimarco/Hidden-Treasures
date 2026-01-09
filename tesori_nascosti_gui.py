@@ -6,6 +6,7 @@ import sys
 from Carta import Carta
 from Giocatore import Giocatore
 from Mazzo import Mazzo
+from validator import Validator
 import os 
 
 class DialogoNomi(EasyDialog):
@@ -43,6 +44,7 @@ class TesoriNascosti(EasyFrame):
     def __init__(self, title = "Tesori Nascosti - Team 2", width = 1000, height = 1000, background = "#008000"):
         super().__init__(title, width, height, background)
         self.mazzo_gioco = Mazzo()
+        self.validator = Validator()
         self.giocatori = [Giocatore("Giocatore 1"), Giocatore("Giocatore 2")]
         self.indice_turno = 0
         self.indice_carta_selezionata = None
@@ -65,6 +67,8 @@ class TesoriNascosti(EasyFrame):
         menu.addMenuItem("Nuova Partita", command = self.apriDialog)
         # menu.addMenuItem("Classifica", command = self.mostraClassifica)
 
+        percorso_retro = self.ottieni_percorso_immagini("retro_carta_rossa_8bit.png")
+        self.immagine_retro_cache = self.carica_immagine(percorso_retro)
         pannello_griglia_carte = self.addPanel(row = 1, column = 0, columnspan = 6, background = "#008000")
         for r in range(6):
             for c in range(6):
@@ -72,10 +76,8 @@ class TesoriNascosti(EasyFrame):
                 pulsante = pannello_griglia_carte.addButton(text = "", row = r, column = c, command = lambda x = indice_carta: self.rivelaCarta(x))
                 pulsante["height"] = 0
                 pulsante["width"] = 0
-                percorso = self.ottieni_percorso_immagini("retro_carta_rossa_8bit.png")
-                foto = self.carica_immagine(percorso)
-                pulsante["image"] = foto
-                pulsante.image = foto
+                pulsante["image"] = self.immagine_retro_cache
+                pulsante.image = self.immagine_retro_cache
 
                 self.pulsanti.append(pulsante)
         self.pulsante_accetta = self.addButton(text = "Accetta (1 PA)", row = 3, column = 0, command = self.azioneAccetta, state = "disabled") 
@@ -140,7 +142,8 @@ class TesoriNascosti(EasyFrame):
     def gestisciTurno(self): 
         giocatore_di_turno = self.giocatori[self.indice_turno]
         if not giocatore_di_turno.concluso:
-            giocatore_di_turno.punteggio = giocatore_di_turno.punti_totali + sum(c.valore for c in giocatore_di_turno.mano if c.valore is not None)
+            punti_mano_corrente = self.validator.valutaMano(giocatore_di_turno.mano, giocatore_di_turno.punti_azione)
+            giocatore_di_turno.punteggio = giocatore_di_turno.punti_totali + punti_mano_corrente
         if self.indice_turno == 0:
             colore_attuale = "#87CEFA"
         else:
@@ -201,15 +204,11 @@ class TesoriNascosti(EasyFrame):
                 if proprietario == indice_attivo:
                     pulsante["text"] = str(carta_obj)
                 else:
-                    percorso = self.ottieni_percorso_immagini("retro_carta_rossa_8bit.png")
-                    foto = self.carica_immagine(percorso)
-                    pulsante["image"] = foto
-                    pulsante.image = foto
+                    pulsante["image"] = self.immagine_retro_cache
+                    pulsante.image = self.immagine_retro_cache
             else:
-                percorso = self.ottieni_percorso_immagini("retro_carta_rossa_8bit.png")
-                foto = self.carica_immagine(percorso)
-                pulsante["image"] = foto
-                pulsante.image = foto
+                pulsante["image"] = self.immagine_retro_cache
+                pulsante.image = self.immagine_retro_cache
                 if self.giocatori[indice_attivo].punti_azione > 0:
                     pulsante["state"] = "normal"
                 else:
@@ -311,8 +310,9 @@ class TesoriNascosti(EasyFrame):
         self.timer_in_corso = False
         pausa_timer = time.time()
         for giocatore in self.giocatori:
-            giocatore.punteggio += giocatore.punti_azione + giocatore.punti_totali
-            giocatore.punti_totali = giocatore.punteggio
+            punti_round = self.validator.valutaMano(giocatore.mano, giocatore.punti_azione)
+            giocatore.punti_totali += punti_round
+            giocatore.punteggio = giocatore.punti_totali
         if self.giocatori[0].punteggio < 110 and self.giocatori[1].punteggio < 110:
             self.messageBox(title = f"Round {self.numero_round} Terminato", message = "La partita non è ancora terminata, state per inziare un nuovo round.")
             self.numero_round += 1
