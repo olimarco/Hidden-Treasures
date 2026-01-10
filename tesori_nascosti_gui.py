@@ -65,7 +65,7 @@ class TesoriNascosti(EasyFrame):
         self.label_timer = pannello_griglia_label.addLabel(text = "Tempo: 0s", row = 0, column = 2, columnspan = 4, sticky = "NW")
         self.menu = pannello_griglia_label.addMenuBar(row = 0, column = 3)
         menu = self.menu.addMenu("Menu")
-        menu.addMenuItem("Nuova Partita", command = self.apriDialog)
+        menu.addMenuItem("Nuova Partita", command = self.torna_al_menu_principale)
         # menu.addMenuItem("Classifica", command = self.mostraClassifica)
 
         percorso_retro = self.ottieni_percorso_immagini("retro_carta_rossa_8bit.png")
@@ -88,13 +88,8 @@ class TesoriNascosti(EasyFrame):
         self.after(100, self.apriDialog)
 
     def apriDialog(self):
-        partita_in_corso = self.timer_in_corso
-        if partita_in_corso:
-            self.timer_in_corso = False
-            pausa_timer = time.time()
         dialog = DialogoNomi(self)
         if dialog.modified():
-            self.timer_in_corso = False
             self.label_timer["text"] = "Tempo: 0s"
             n1, n2 = dialog.risultato
             self.giocatori = [Giocatore(n1), Giocatore(n2)]
@@ -106,21 +101,13 @@ class TesoriNascosti(EasyFrame):
             self.pulsante_rifiuta["bg"] = "SystemButtonFace"
             self.pulsante_cambia["bg"] = "SystemButtonFace"
             self.pulsante_concludi["bg"] = "SystemButtonFace"
-            self.indice_turno = 0
             self.tempo_inizio = time.time()
             self.timer_in_corso = True
             self.aggiornaTimer()
             self.iniziaRound()
             self.gestisciTurno()
         else:
-            if partita_in_corso:
-                ripresa_timer = time.time()
-                durata_pausa = ripresa_timer - pausa_timer
-                self.tempo_inizio += durata_pausa
-                self.timer_in_corso = True
-                self.aggiornaTimer()
-            else:
-                sys.exit()
+            self.torna_al_menu_principale()
 
     def aggiornaTimer(self):
         if self.timer_in_corso:
@@ -420,7 +407,11 @@ class TesoriNascosti(EasyFrame):
         immagine_ridimensionata = immagine_pil.resize((55, 70), Image.Resampling.LANCZOS)
         return ImageTk.PhotoImage(immagine_ridimensionata)
 
-
+    def torna_al_menu_principale(self):
+        self.destroy()
+        from menu_principale import MenuPrincipale
+        app = MenuPrincipale()
+        app.mainloop()
 
 
 
