@@ -48,6 +48,10 @@ class Carta:
     @property
     def tipoSpeciale(self):
         return self._tipoSpeciale
+    
+    @property
+    def rivelataPermanente(self):
+        return self._rivelataPermanente
 
     def assegna_carta(self, giocatore):
         """
@@ -62,6 +66,10 @@ class Carta:
         """
         if not self._rivelataPermanente:
             self._coperta = not self._coperta
+
+    def rivela_permanente(self):
+        self._rivelataPermanente = True
+        self._coperta = False
 
     def reset(self):
         """
