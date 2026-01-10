@@ -46,6 +46,7 @@ class TesoriNascosti(EasyFrame):
         self.mazzo_gioco = Mazzo()
         self.validator = Validator()
         self.giocatori = [Giocatore("Giocatore 1"), Giocatore("Giocatore 2")]
+        self.primo_giocatore_round = 0
         self.indice_turno = 0
         self.indice_carta_selezionata = None
         self.griglia_carte_estratte = []
@@ -97,6 +98,8 @@ class TesoriNascosti(EasyFrame):
             self.label_timer["text"] = "Tempo: 0s"
             n1, n2 = dialog.risultato
             self.giocatori = [Giocatore(n1), Giocatore(n2)]
+            self.primo_giocatore_round = 0 
+            self.indice_turno = 0
             self.numero_round = 1
             self.label_round["text"] = "Round 1"
             self.pulsante_accetta["bg"] = "SystemButtonFace"
@@ -126,6 +129,7 @@ class TesoriNascosti(EasyFrame):
             self.after(1000, self.aggiornaTimer)
 
     def iniziaRound(self):
+        self.indice_turno = self.primo_giocatore_round
         self.mazzo = self.mazzo_gioco.creaMazzo()
         self.griglia_carte_estratte = self.mazzo_gioco.estrai_36()
         self.mappa_possesso = {}
@@ -177,7 +181,6 @@ class TesoriNascosti(EasyFrame):
                 self.pulsante_cambia["state"] = "disabled"
             self.pulsante_concludi["state"] = "disabled"
 
-
     def cambiaTurno(self):
         self.indice_carta_selezionata = None
         self.indice_nuova_carta = None
@@ -192,29 +195,35 @@ class TesoriNascosti(EasyFrame):
         else:
             self.indice_turno = indice_prossimo
         indice_attivo = self.indice_turno 
+        percorso_retro = self.ottieni_percorso_immagini("retro_carta_rossa_8bit.png")
+        foto_retro = self.carica_immagine(percorso_retro)
         for i, pulsante in enumerate(self.pulsanti):
             if i in self.mappa_possesso:
                 proprietario = self.mappa_possesso[i]
-                carta_obj = self.griglia_carte_estratte[i]
                 if proprietario == 0:
                     pulsante["bg"] = "#87CEFA" 
                 else:
-                    pulsante["bg"] = "#FC7868"
+                    pulsante["bg"] = "#FC7868" 
                 pulsante["state"] = "disabled"
                 if proprietario == indice_attivo:
-                    pulsante["text"] = str(carta_obj)
+                    carta_obj = self.griglia_carte_estratte[i]
+                    percorso = self.ottieni_percorso_immagini(carta_obj)
+                    foto = self.carica_immagine(percorso)
+                    pulsante["image"] = foto
+                    pulsante.image = foto
                 else:
-                    pulsante["image"] = self.immagine_retro_cache
-                    pulsante.image = self.immagine_retro_cache
+                    pulsante["image"] = foto_retro
+                    pulsante.image = foto_retro
             else:
-                pulsante["image"] = self.immagine_retro_cache
-                pulsante.image = self.immagine_retro_cache
+                pulsante["bg"] = "SystemButtonFace"
+                pulsante["image"] = foto_retro
+                pulsante.image = foto_retro
                 if self.giocatori[indice_attivo].punti_azione > 0:
                     pulsante["state"] = "normal"
                 else:
                     pulsante["state"] = "disabled"     
         self.gestisciTurno()
-
+    
     def rivelaCarta(self, indice_carta):
         giocatore_di_turno = self.giocatori[self.indice_turno]
         if self.fase_scambio:
@@ -283,15 +292,25 @@ class TesoriNascosti(EasyFrame):
         self.mappa_possesso[self.indice_carta_selezionata] = self.indice_turno
         self.pulsanti[self.indice_carta_selezionata]["state"] = "disabled"
         contatore = 0
+        if self.indice_turno == 0:
+            colore_attuale = "#87CEFA" 
+        else:
+            colore_attuale = "#FC7868"
         for indice_carta, indice_giocatore in self.mappa_possesso.items():
-            if self.indice_turno == 0:
-                colore_attuale = "#87CEFA" 
-            else:
-                colore_attuale = "#FC7868"
             if indice_giocatore == self.indice_turno and indice_carta != self.indice_nuova_carta:
                 self.pulsanti[indice_carta]["state"] = "normal"
                 self.pulsanti[indice_carta]["bg"] = colore_attuale 
-                self.pulsanti[indice_carta]["text"] = str(self.griglia_carte_estratte[indice_carta])
+                carta_obj = self.griglia_carte_estratte[indice_carta]
+                percorso = self.ottieni_percorso_immagini(carta_obj)
+                try:
+                    self.pulsanti[indice_carta]["width"] = 0
+                    self.pulsanti[indice_carta]["height"] = 0
+                    foto = self.carica_immagine(percorso)
+                    self.pulsanti[indice_carta]["image"] = foto
+                    self.pulsanti[indice_carta].image = foto 
+                except Exception as e:
+                    print(f"Errore caricamento immagine scambio: {e}")
+                    self.pulsanti[indice_carta]["text"] = str(carta_obj)
                 contatore += 1
         self.pulsante_accetta["state"] = "disabled"
         self.pulsante_rifiuta["state"] = "disabled"
@@ -314,7 +333,25 @@ class TesoriNascosti(EasyFrame):
             giocatore.punti_totali += punti_round
             giocatore.punteggio = giocatore.punti_totali
         if self.giocatori[0].punteggio < 110 and self.giocatori[1].punteggio < 110:
-            self.messageBox(title = f"Round {self.numero_round} Terminato", message = "La partita non è ancora terminata, state per inziare un nuovo round.")
+            self.label_info["text"] = f"In attesa di iniziare un nuovo round..."
+            self.label_info["bg"] = "SystemButtonFace"
+            percorso = self.ottieni_percorso_immagini("retro_carta_rossa_8bit.png")
+            foto = self.carica_immagine(percorso)
+            for pulsante in self.pulsanti:
+                pulsante["bg"] = "SystemButtonFace"
+                pulsante["state"] = "normal"
+                pulsante["image"] = foto
+                pulsante.image = foto
+            self.pulsante_accetta["state"] = "disabled"
+            self.pulsante_accetta["bg"] = "SystemButtonFace"
+            self.pulsante_rifiuta["state"] = "disabled"
+            self.pulsante_rifiuta["bg"] = "SystemButtonFace"
+            self.pulsante_cambia["state"] = "disabled"
+            self.pulsante_cambia["bg"] = "SystemButtonFace"
+            self.pulsante_concludi["state"] = "disabled"
+            self.pulsante_concludi["bg"] = "SystemButtonFace"
+            self.messageBox(title = f"Round {self.numero_round} Terminato", message = "Nessun giocatore ha raggiunto la soglia di 110 punti per vincere. State per inziare un nuovo round.")
+            self.primo_giocatore_round = 1 - self.primo_giocatore_round
             self.numero_round += 1
             self.label_round["text"] = f"Round {self.numero_round}"
             ripresa_timer = time.time()
@@ -332,18 +369,29 @@ class TesoriNascosti(EasyFrame):
         if g1.punteggio > g2.punteggio:
             testo = f"VINCE {g1.nome}!"
             colore_attuale = "#87CEFA"
+            titolo = f"La Vittoria va a {g1.nome}"
+            messaggio = f"{g1.nome} ha totalizzato {g1.punteggio} punti."
         elif g2.punteggio > g1.punteggio:
             testo = f"VINCE {g2.nome}!"
             colore_attuale = "#FC7868"
+            titolo = f"La Vittoria va a {g2.nome}"
+            messaggio = f"{g2.nome} ha totalizzato {g2.punteggio} punti."
         else:
             if g1.punti_azione > g2.punti_azione:
                 testo = f"VINCE {g1.nome} (Spareggio PA)!"
                 colore_attuale = "#87CEFA"
+                titolo = f"La Vittoria va a {g1.nome}"
+                messaggio = f"{g1.nome} ha totalizzato {g1.punteggio} punti, e con {g1.punti_azione} punti azione residui si aggiudica la vittoria."
             elif g2.punti_azione > g1.punti_azione:
                 testo = f"VINCE {g2.nome} (Spareggio PA)!"
                 colore_attuale = "#FC7868"
+                titolo = f"La Vittoria va a {g2.nome}"
+                messaggio = f"{g2.nome} ha totalizzato {g2.punteggio} punti, e con {g2.punti_azione} punti azione residui si aggiudica la vittoria."
             else:
                 testo = "PAREGGIO!"
+                colore_attuale = "SystemButtonFace"
+                testo = "PARITÀ"
+                messaggio = "La partita si conclude in pareggio"
         self.label_info["text"] = f"PARTITA TERMINATA\n{testo}"
         self.label_info["bg"] = colore_attuale
         self.pulsante_accetta["state"] = "disabled"
@@ -356,6 +404,7 @@ class TesoriNascosti(EasyFrame):
         self.pulsante_concludi["bg"] = "SystemButtonFace"
         for pulsante in self.pulsanti:
             pulsante["state"] = "disabled"
+        self.messageBox(title = titolo, message = messaggio + "\nPotete consultare i risultati di questa partita in Menu → Classifica.")
 
     def ottieni_percorso_immagini(self, carta):
         if isinstance(carta, str):
@@ -365,7 +414,7 @@ class TesoriNascosti(EasyFrame):
         elif carta.valore:
             nome_file = f"{carta.valore}_di_{carta.seme.lower()}.png"
         return os.path.join("Immagini_mazzo", nome_file)
-    
+
     def carica_immagine(self, percorso):
         immagine_pil = Image.open(percorso)
         immagine_ridimensionata = immagine_pil.resize((55, 70), Image.Resampling.LANCZOS)
@@ -383,4 +432,3 @@ class TesoriNascosti(EasyFrame):
 if __name__ == "__main__":
     app = TesoriNascosti()
     app.mainloop()
-
