@@ -14,7 +14,7 @@ class Carta:
         self._seme = seme
         self._tipoSpeciale = tipoSpeciale
         self._coperta = True
-        assengnaA = None
+        self._assengnataA = None
         self._rivelataPermanente = False
 
     def __str__(self):
