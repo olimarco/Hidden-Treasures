@@ -54,7 +54,8 @@ class TesoriNascosti(EasyFrame):
         self.tempo_inizio = 0
         self.timer_in_corso = False
         self.mappa_possesso = {}
-        self.fase_scambio = False 
+        self.fase_scambio = False
+        self.fase_pergamena = False
         self.indice_nuova_carta = None 
         self.numero_round = 1
         pannello_griglia_label = self.addPanel(row = 0, column = 0, columnspan = 4, background = "#008000")
@@ -185,6 +186,7 @@ class TesoriNascosti(EasyFrame):
         percorso_retro = self.ottieni_percorso_immagini("retro_carta_rossa_8bit.png")
         foto_retro = self.carica_immagine(percorso_retro)
         for i, pulsante in enumerate(self.pulsanti):
+            carta_obj = self.griglia_carte_estratte[i]
             if i in self.mappa_possesso:
                 proprietario = self.mappa_possesso[i]
                 if proprietario == 0:
@@ -193,7 +195,6 @@ class TesoriNascosti(EasyFrame):
                     pulsante["bg"] = "#FC7868" 
                 pulsante["state"] = "disabled"
                 if proprietario == indice_attivo:
-                    carta_obj = self.griglia_carte_estratte[i]
                     percorso = self.ottieni_percorso_immagini(carta_obj)
                     foto = self.carica_immagine(percorso)
                     pulsante["image"] = foto
@@ -203,8 +204,14 @@ class TesoriNascosti(EasyFrame):
                     pulsante.image = foto_retro
             else:
                 pulsante["bg"] = "SystemButtonFace"
-                pulsante["image"] = foto_retro
-                pulsante.image = foto_retro
+                if not carta_obj.rivelataPermanente:
+                    pulsante["image"] = foto_retro
+                    pulsante.image = foto_retro
+                else:
+                    percorso = self.ottieni_percorso_immagini(carta_obj)
+                    foto = self.carica_immagine(percorso)
+                    pulsante["image"] = foto
+                    pulsante.image = foto
                 if self.giocatori[indice_attivo].punti_azione > 0:
                     pulsante["state"] = "normal"
                 else:
@@ -212,6 +219,24 @@ class TesoriNascosti(EasyFrame):
         self.gestisciTurno()
     
     def rivelaCarta(self, indice_carta):
+        if self.fase_pergamena:
+            if indice_carta in self.mappa_possesso:
+                self.messageBox("Errore", "Non puoi rivelare una carta già assegnata.")
+                return
+
+            carta_obj = self.griglia_carte_estratte[indice_carta]    
+            if carta_obj.rivelataPermanente:
+                 return
+            carta_obj.rivela_permanente()
+            
+            percorso = self.ottieni_percorso_immagini(carta_obj)
+            foto = self.carica_immagine(percorso)
+            self.pulsanti[indice_carta]["image"] = foto
+            self.pulsanti[indice_carta].image = foto
+            
+            self.fase_pergamena = False
+            self.cambiaTurno()
+            return
         giocatore_di_turno = self.giocatori[self.indice_turno]
         if self.fase_scambio:
             indice_giocatore = self.mappa_possesso.get(indice_carta)
@@ -226,6 +251,11 @@ class TesoriNascosti(EasyFrame):
                 del self.mappa_possesso[indice_carta]
                 self.pulsanti[indice_carta]["text"] = "?"
                 self.pulsanti[indice_carta]["bg"] = "SystemButtonFace"
+
+                if nuova_carta.tipoSpeciale in ["Pergamena", "P"]:
+                    self.fase_pergamena = True
+                    self.messageBox(title="Effetto Pergamena", message="Hai scambiato per una Pergamena!\nClicca su una carta della griglia per rivelarla permanentemente.")
+                    return
                 self.cambiaTurno()
             return
         if self.indice_carta_selezionata is not None or giocatore_di_turno.punti_azione <= 0:
@@ -260,6 +290,16 @@ class TesoriNascosti(EasyFrame):
             giocatore_di_turno.aggiungi_carta(carta_presa)
             self.pulsanti[self.indice_carta_selezionata]["state"] = "disabled"
             self.mappa_possesso[self.indice_carta_selezionata] = self.indice_turno
+
+            if carta_presa.tipoSpeciale in ["Moneta", "M"]:
+                giocatore_di_turno.punti_azione += 2 #Qua Aggiungo 2 punti così avrò un punto in più rispetto a prima di pescare la carta
+                self.messageBox(title="Moneta!", message="Hai raccolto una Moneta!\nGuadagni +1 Punto Azione extra.")
+            
+            if carta_presa.tipoSpeciale in ["Pergamena", "P"]:
+                self.fase_pergamena = True
+                self.messageBox(title="Effetto Pergamena", message="Hai trovato una Pergamena!\nClicca su una carta coperta della griglia per rivelarla permanentemente.")
+                return
+
         self.cambiaTurno()
 
     def azioneRifiuta(self):
