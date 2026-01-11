@@ -444,7 +444,7 @@ class TesoriNascosti(EasyFrame):
 
     def carica_immagine(self, percorso):
         immagine_pil = Image.open(percorso)
-        immagine_ridimensionata = immagine_pil.resize((55, 70), Image.Resampling.LANCZOS)
+        immagine_ridimensionata = (immagine_pil.resize((55, 70), Image.Resampling.LANCZOS))
         return ImageTk.PhotoImage(immagine_ridimensionata)
 
     def torna_al_menu_principale(self):
