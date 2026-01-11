@@ -68,6 +68,10 @@ class Carta:
             self._coperta = not self._coperta
 
     def rivela_permanente(self):
+        """
+        Imposta lo stato della carta come rivelata permanentemente e "scopre la carta",
+        permettendo alla gui di gestire facilmente il funzionamento della pergamena
+        """
         self._rivelataPermanente = True
         self._coperta = False
 
