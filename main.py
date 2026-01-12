@@ -145,7 +145,7 @@ class Classifica(EasyFrame):
             foreground = "#8B4513",
             borderwidth = 3
         )
-        self.canvas.create_window(centro_x, centro_y + 220, window = self.pulsante_nuova_partita, width = 250, height = 60)
+        self.canvas.create_window(centro_x, centro_y + 220, window = self.pulsante_menu_principale, width = 250, height = 60)
 
     def torna_al_menu_principale(self):
         """Chiude la classifica e riapre il menu principale"""
