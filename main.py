@@ -60,59 +60,62 @@ class MenuPrincipale(EasyFrame):
 class Classifica(EasyFrame):
     def __init__(self):
         super().__init__("Tesori Nascosti - Classifica")
-        
-        self.gestore = GestoreClassifica("classifica.txt")
-
-        self.master.state('zoomed') 
-        self.master.update() 
-        
-        w_reale = self.master.winfo_width()
-        h_reale = self.master.winfo_height()
-        
-        h_meta = h_reale // 2 
-
+        self.master.state('zoomed')
+        self.master.update()
+       
+        larghezza_schermo = self.master.winfo_width()
+        altezza_schermo = self.master.winfo_height()
+       
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        percorso = os.path.join(base_dir, "Immagini_mazzo", "sfondo_classifica.png") 
-        
+       
+        percorso_sfondo = os.path.join(base_dir, "Immagini_mazzo", "sfondo_classifica.png")
+
+        percorso_dati = os.path.join(base_dir, "classifica.txt")
+
         try:
-            immagine = Image.open(percorso)
-            immagine_ridimensionata = immagine.resize((w_reale, h_meta), Image.Resampling.LANCZOS)
+            immagine = Image.open(percorso_sfondo)
+            immagine_ridimensionata = immagine.resize((larghezza_schermo, altezza_schermo), Image.Resampling.LANCZOS)
             self.foto = ImageTk.PhotoImage(immagine_ridimensionata)
         except Exception as e:
-            self.messageBox("Errore Immagine", f"Errore: {e}")
-            self.foto = None
+            self.messageBox("Errore Immagine", f"Errore caricamento sfondo: {e}")
+            sys.exit()
 
-        self.canvas = self.addCanvas(row=0, column=0, width=w_reale, height=h_meta)
-        if self.foto:
-            self.canvas.create_image(0, 0, image=self.foto, anchor="nw")
+        self.canvas = self.addCanvas(row = 0, column = 0, width = larghezza_schermo, height = altezza_schermo)
+        self.canvas.create_image(0, 0, image = self.foto, anchor = "nw")
+       
+        centro_x = larghezza_schermo / 2
+        centro_y = altezza_schermo / 2
+       
+        self.lista_punteggi = tk.Listbox(
+            self.canvas,
+            font=("Courier", 13, "bold"),
+            bg="#F5DEB3",     
+            fg="#4B3621",     
+            bd=0,              
+            highlightthickness=0,
+            activestyle="none"
+        )
 
-        pannello_sotto = self.addPanel(row=1, column=0, background="#FDF5E6")
-        
-        self.lista_classifica = pannello_sotto.addListbox(row=0, column=0, rowspan=1, width=100, height=15)
-        self.lista_classifica["font"] = ("Courier", 14, "bold")
-        self.lista_classifica["bg"] = "#FDF5E6"
-        self.lista_classifica["fg"] = "#4B3621"
-        self.lista_classifica["borderwidth"] = 0
-        self.lista_classifica["highlightthickness"] = 0
+        gestore = GestoreClassifica(percorso_dati)
+        testo_completo = gestore.classifica_come_testo()
+       
+        righe = testo_completo.split("\n")
+        for riga in righe:
+            if riga.strip():
+                self.lista_punteggi.insert(tk.END, riga)
 
-        try:
-            testo_dati = self.gestore.classifica_come_testo()
-            righe = testo_dati.split("\n")
-            if not righe or righe == ['']:
-                 self.lista_classifica.insert(tk.END, "Nessuna partita registrata.")
-            else:
-                for riga in righe:
-                    if riga.strip():
-                        self.lista_classifica.insert(tk.END, riga)
-        except:
-             self.lista_classifica.insert(tk.END, "Errore lettura file.")
-
-        self.pulsante_nuova_partita = pannello_sotto.addButton(text="MENU PRINCIPALE", row=1, column=0, command=self.torna_al_menu_principale)
-
-        self.pulsante_nuova_partita["font"] = ("Verdana", 16, "bold")
-        self.pulsante_nuova_partita["bg"] = "#FFC125"
-        self.pulsante_nuova_partita["fg"] = "#8B4513"
-        self.pulsante_nuova_partita["width"] = 20
+        self.canvas.create_window(centro_x, centro_y, window=self.lista_punteggi, width=700, height=350)
+       
+        self.pulsante_nuova_partita = Button(
+            self.canvas,
+            text = "MENU PRINCIPALE",
+            command = self.torna_al_menu_principale,
+            font=("Verdana", 16, "bold"),
+            background = "#FFC125",
+            foreground = "#8B4513",
+            bd = 3
+        )
+        self.canvas.create_window(centro_x, centro_y + 220, window = self.pulsante_nuova_partita, width = 250, height = 60)
 
     def torna_al_menu_principale(self):
         """Chiude la classifica e riapre il menu principale"""
