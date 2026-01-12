@@ -117,7 +117,7 @@ class Classifica(EasyFrame):
     def torna_al_menu_principale(self):
         """Chiude la classifica e riapre il menu principale"""
         self.destroy()
-        from menu_principale import MenuPrincipale
+        from main import MenuPrincipale
         app = MenuPrincipale()
         app.mainloop()
 

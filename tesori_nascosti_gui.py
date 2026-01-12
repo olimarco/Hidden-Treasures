@@ -7,7 +7,7 @@ from Giocatore import Giocatore
 from Mazzo import Mazzo
 from validator import Validator
 from GestoreClassifica import GestoreClassifica
-import os 
+import os
 
 class DialogoNomi(EasyDialog):
     def __init__(self, parent):
@@ -114,7 +114,7 @@ class TesoriNascosti(EasyFrame):
 
     def mostraClassifica(self):
         self.destroy()
-        from menu_principale import Classifica 
+        from main import Classifica 
         app = Classifica()
         app.mainloop()
 
@@ -364,7 +364,7 @@ class TesoriNascosti(EasyFrame):
             punti_round = self.validator.valutaMano(giocatore.mano, giocatore.punti_azione)
             giocatore.punti_totali += punti_round
             giocatore.punteggio = giocatore.punti_totali
-        if self.giocatori[0].punteggio < 30 and self.giocatori[1].punteggio < 30:
+        if self.giocatori[0].punteggio < 110 and self.giocatori[1].punteggio < 110:
             self.label_info["text"] = f"In attesa di iniziare un nuovo round..."
             self.label_info["bg"] = "SystemButtonFace"
             percorso = self.ottieni_percorso_immagini("retro_carta_rossa_8bit.png")
@@ -492,7 +492,7 @@ class TesoriNascosti(EasyFrame):
 
     def torna_al_menu_principale(self):
         self.destroy()
-        from menu_principale import MenuPrincipale
+        from main import MenuPrincipale
         app = MenuPrincipale()
         app.mainloop()
 
