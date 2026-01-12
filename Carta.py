@@ -2,7 +2,7 @@ class Carta:
     """
     Rappresenta una carta da gioco, che può essere una carta standard (valore e seme)
     oppure una carta speciale (Moneta, Gemma o pergamena). Gestisce anche lo stato della carta
-    (coperta/scoperta) e il giocatore che la possiede.
+    (coperta/scoperta).
     """
     def __init__(self, valore=None, seme=None, tipoSpeciale=None):
         """
@@ -14,7 +14,6 @@ class Carta:
         self._seme = seme
         self._tipoSpeciale = tipoSpeciale
         self._coperta = True
-        self._assengnataA = None
         self._rivelataPermanente = False
 
     def __str__(self):
@@ -53,11 +52,6 @@ class Carta:
     def rivelataPermanente(self):
         return self._rivelataPermanente
 
-    def assegna_carta(self, giocatore):
-        """
-        Assegna la carta a uno specifico oggetto Giocatore.
-        """
-        self._assegnataA = giocatore
 
     def gira_carta(self):
         """
@@ -81,4 +75,3 @@ class Carta:
         """
         self._coperta = True
         self._rivelataPermanente = False
-        self._assegnataA = None

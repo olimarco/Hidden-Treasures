@@ -28,7 +28,6 @@ class Giocatore:
         """
         if len(self._mano) < 5:
             self._mano.append(carta)
-            carta.assegna_carta(self)
 
     def rimuovi_carta(self, carta):
         """
