@@ -592,6 +592,7 @@ class TesoriNascosti(EasyFrame):
                 testo = "PAREGGIO!"
                 colore_attuale = "SystemButtonFace"
                 testo = "PARITÀ"
+                titolo = "PARITÀ ASSOLUTA"
                 messaggio = "La partita si conclude in pareggio"
                 vincitore_nome = "Pareggio"
 
