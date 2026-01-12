@@ -18,12 +18,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple, Callable, TypeVar
+from typing import List, Dict, Optional, Tuple
 
 
 SEPARATORE = "|"
 
-T = TypeVar("T")
+# MODIFICA
+# Valore standard per rappresentare un pareggio nel campo vincitore
+VALORE_PAREGGIO = "PAREGGIO"
 
 
 @dataclass
@@ -39,40 +41,86 @@ class Partita:
     pa2: int
     vincitore: str
 
+    # MODIFICA
+    @staticmethod
+    def _normalizza_vincitore(vincitore: Optional[str], nome1: str, nome2: str) -> str:
+        """
+        Normalizza il campo vincitore.
+
+        Regole
+        - se è None o stringa vuota diventa PAREGGIO
+        - se non coincide con nome1 o nome2 diventa PAREGGIO
+        - se coincide con nome1 o nome2 rimane quello
+        """
+        if vincitore is None:
+            return VALORE_PAREGGIO
+
+        v = str(vincitore).strip()
+        if not v:
+            return VALORE_PAREGGIO
+
+        if v != nome1 and v != nome2:
+            return VALORE_PAREGGIO
+
+        return v
+
     @staticmethod
     def from_line(line: str) -> Optional["Partita"]:
         """
         Converte una riga del file in un oggetto Partita.
         Ritorna None se la riga è vuota o malformata.
+
+        MODIFICA
+        In caso di pareggio alcune righe possono essere state salvate con 9 campi
+        cioè senza l ultimo campo vincitore
+        In quel caso assumiamo vincitore = PAREGGIO
+        Inoltre normalizziamo sempre il vincitore per evitare righe scartate o incoerenti
         """
         line = line.strip()
         if not line:
             return None
 
         parts = line.split(SEPARATORE)
+
+        # MODIFICA
+        # Recupero compatibilità con righe vecchie salvate senza vincitore
+        if len(parts) == 9:
+            parts.append(VALORE_PAREGGIO)
+
         if len(parts) != 10:
             return None
 
         try:
+            nome1 = parts[3]
+            nome2 = parts[6]
+
+            vincitore_ok = Partita._normalizza_vincitore(parts[9], nome1, nome2)
+
             return Partita(
                 data_iso=parts[0],
                 durata_secondi=int(parts[1]),
                 round_num=int(parts[2]),
-                nome1=parts[3],
+                nome1=nome1,
                 punti1=int(parts[4]),
                 pa1=int(parts[5]),
-                nome2=parts[6],
+                nome2=nome2,
                 punti2=int(parts[7]),
                 pa2=int(parts[8]),
-                vincitore=parts[9],
+                vincitore=vincitore_ok,
             )
         except ValueError:
             return None
 
     def to_line(self) -> str:
         """
-        Converte l'oggetto Partita in una riga pronta da salvare nel file.
+        Converte l oggetto Partita in una riga pronta da salvare nel file.
+
+        MODIFICA
+        Normalizziamo sempre il vincitore anche in scrittura
+        così non scriviamo mai righe con vincitore vuoto o non valido
         """
+        vincitore_ok = Partita._normalizza_vincitore(self.vincitore, self.nome1, self.nome2)
+
         return SEPARATORE.join(
             [
                 self.data_iso,
@@ -84,7 +132,7 @@ class Partita:
                 self.nome2,
                 str(self.punti2),
                 str(self.pa2),
-                self.vincitore,
+                vincitore_ok,
             ]
         )
 
@@ -115,116 +163,6 @@ class GestoreClassifica:
         """
         self.percorso_file = Path(nome_file)
 
-    # =========================
-    # ORDINAMENTI MANUALI
-    # =========================
-
-    def _insertion_sort_in_place(self, items: List[T], confronta: Callable[[T, T], int]) -> None:
-        """
-        Insertion Sort fatto a mano.
-
-        items
-        lista da ordinare in place
-
-        confronta(a, b)
-        deve ritornare
-        valore negativo se a deve venire prima di b
-        zero se equivalenti
-        valore positivo se a deve venire dopo b
-
-        Nota importante
-        Insertion sort è stabile se nel while usiamo una condizione stretta
-        cioè spostiamo solo quando corrente deve venire prima dell'elemento a sinistra
-        in questo modo gli elementi equivalenti mantengono l'ordine originale
-        """
-        for i in range(1, len(items)):
-            corrente = items[i]
-            j = i - 1
-
-            # Sposto a destra finché corrente deve stare prima di items[j]
-            while j >= 0 and confronta(corrente, items[j]) < 0:
-                items[j + 1] = items[j]
-                j -= 1
-
-            items[j + 1] = corrente
-
-    def _confronta_riga_classifica(self, a: RigaClassifica, b: RigaClassifica) -> int:
-        """
-        Criterio
-        1 vittorie decrescente
-        2 miglior punteggio decrescente
-        3 nome alfabetico crescente case insensitive
-        """
-        if a.vittorie != b.vittorie:
-            # Decrescente
-            return b.vittorie - a.vittorie
-
-        if a.miglior_punteggio != b.miglior_punteggio:
-            # Decrescente
-            return b.miglior_punteggio - a.miglior_punteggio
-
-        an = a.nome.lower()
-        bn = b.nome.lower()
-        if an < bn:
-            return -1
-        if an > bn:
-            return 1
-        return 0
-
-    def _confronta_best_singoli(self, a: Tuple[str, int, str], b: Tuple[str, int, str]) -> int:
-        """
-        Confronto per la lista di tuple (nome, punti, data) dei migliori punteggi singoli.
-
-        Criterio
-        1 punti decrescente
-        2 nome alfabetico crescente case insensitive
-        """
-        if a[1] != b[1]:
-            # Decrescente sui punti
-            return b[1] - a[1]
-
-        an = a[0].lower()
-        bn = b[0].lower()
-        if an < bn:
-            return -1
-        if an > bn:
-            return 1
-        return 0
-
-    def _confronta_righe_testo(self, a: Tuple[str, int, int, int, float, float], b: Tuple[str, int, int, int, float, float]) -> int:
-        """
-        Confronto per la lista di tuple usata in classifica_come_testo.
-
-        Struttura tuple
-        (nome, vittorie, partite_giocate, best, media, media_durata)
-
-        Criterio come nel sort originale
-        1 vittorie decrescente
-        2 best decrescente
-        3 media decrescente
-        4 nome alfabetico crescente case insensitive
-        """
-        if a[1] != b[1]:
-            return b[1] - a[1]
-
-        if a[3] != b[3]:
-            return b[3] - a[3]
-
-        if a[4] != b[4]:
-            # Decrescente
-            if a[4] < b[4]:
-                return 1
-            return -1
-
-        an = a[0].lower()
-        bn = b[0].lower()
-        if an < bn:
-            return -1
-        if an > bn:
-            return 1
-        return 0
-
-
     def registra_partita(
         self,
         nome1: str,
@@ -241,9 +179,16 @@ class GestoreClassifica:
         """
         Salva una partita in append sul file TXT.
         Se data_iso non viene passata, usa la data attuale.
+
+        MODIFICA
+        Normalizziamo sempre vincitore prima di scrivere
+        così anche in caso di pareggio non rischiamo righe senza l ultimo campo
         """
         if data_iso is None:
             data_iso = datetime.now().isoformat(timespec="seconds")
+
+        # MODIFICA
+        vincitore_ok = Partita._normalizza_vincitore(vincitore, nome1, nome2)
 
         partita = Partita(
             data_iso=data_iso,
@@ -255,7 +200,7 @@ class GestoreClassifica:
             nome2=nome2,
             punti2=punti2,
             pa2=pa2,
-            vincitore=vincitore,
+            vincitore=vincitore_ok,
         )
 
         self.percorso_file.parent.mkdir(parents=True, exist_ok=True)
@@ -282,11 +227,10 @@ class GestoreClassifica:
     def calcola_classifica(self) -> List[RigaClassifica]:
         """
         Calcola la classifica aggregando i dati di tutte le partite.
-
-        Criterio di ordinamento
-        1 vittorie decrescente
-        2 miglior punteggio decrescente
-        3 nome alfabetico
+        Criterio di ordinamento:
+        1) vittorie decrescente
+        2) miglior punteggio decrescente
+        3) nome alfabetico
         """
         partite = self.leggi_partite()
         if not partite:
@@ -318,12 +262,13 @@ class GestoreClassifica:
             if p.punti2 > stats[p.nome2]["best"]:
                 stats[p.nome2]["best"] = p.punti2
 
+            # MODIFICA
+            # In caso di pareggio vincitore sarà PAREGGIO e non incrementa vittorie
             if p.vincitore == p.nome1:
                 stats[p.nome1]["vittorie"] += 1
             elif p.vincitore == p.nome2:
                 stats[p.nome2]["vittorie"] += 1
             else:
-                # Caso pareggio o vincitore non valido
                 pass
 
         righe: List[RigaClassifica] = []
@@ -341,8 +286,7 @@ class GestoreClassifica:
                 )
             )
 
-        # Ordinamento manuale con Insertion Sort
-        self._insertion_sort_in_place(righe, self._confronta_riga_classifica)
+        righe.sort(key=lambda r: (-r.vittorie, -r.miglior_punteggio, r.nome.lower()))
         return righe
 
     def _formatta_data_breve(self, data_iso: str) -> str:
@@ -353,9 +297,6 @@ class GestoreClassifica:
             return data_iso
 
     def _migliori_punteggi_singoli(self) -> List[Tuple[str, int, str]]:
-        """
-        Restituisce una lista di tuple (nome, punti_massimi, data_breve) per ogni giocatore.
-        """
         partite = self.leggi_partite()
         best: Dict[str, Tuple[int, str]] = {}
 
@@ -369,9 +310,7 @@ class GestoreClassifica:
                 best[p.nome2] = (p.punti2, d)
 
         righe: List[Tuple[str, int, str]] = [(nome, punti, data) for nome, (punti, data) in best.items()]
-
-        # Ordinamento manuale con Insertion Sort
-        self._insertion_sort_in_place(righe, self._confronta_best_singoli)
+        righe.sort(key=lambda x: (-x[1], x[0].lower()))
         return righe
 
     def ultime_partite_come_testo(self, max_righe: int = 10) -> str:
@@ -425,13 +364,6 @@ class GestoreClassifica:
         return "\n".join(out)
 
     def classifica_come_testo(self, max_righe: int = 20) -> str:
-        """
-        Genera una classifica in formato testo con tabella.
-
-        Modifica rispetto alla versione precedente
-        Prima usavamo list.sort con key.
-        Ora ordiniamo manualmente con Insertion Sort.
-        """
         partite = self.leggi_partite()
         if not partite:
             return "Nessuna partita registrata."
@@ -466,6 +398,8 @@ class GestoreClassifica:
             if p.punti2 > stats[p.nome2]["best"]:
                 stats[p.nome2]["best"] = p.punti2
 
+            # MODIFICA
+            # Pareggio non assegna vittorie ma la partita è valida e viene conteggiata
             if p.vincitore == p.nome1:
                 stats[p.nome1]["vittorie"] += 1
             elif p.vincitore == p.nome2:
@@ -481,10 +415,7 @@ class GestoreClassifica:
             media_durata = (float(s["somma_durata"]) / partite_giocate) if partite_giocate > 0 else 0.0
             righe.append((nome, vittorie, partite_giocate, best, media, media_durata))
 
-        # Ordinamento manuale con Insertion Sort
-        self._insertion_sort_in_place(righe, self._confronta_righe_testo)
-
-        # Taglio alle prime max_righe come nella versione originale
+        righe.sort(key=lambda x: (-x[1], -x[3], -x[4], x[0].lower()))
         righe = righe[:max_righe]
 
         headers = ["Pos", "Nome", "Vittorie", "Partite", "Best", "Media", "Durata media"]
