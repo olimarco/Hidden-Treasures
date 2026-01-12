@@ -18,10 +18,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Callable, TypeVar
 
 
 SEPARATORE = "|"
+
+T = TypeVar("T")
 
 
 @dataclass
@@ -113,6 +115,116 @@ class GestoreClassifica:
         """
         self.percorso_file = Path(nome_file)
 
+    # =========================
+    # ORDINAMENTI MANUALI
+    # =========================
+
+    def _insertion_sort_in_place(self, items: List[T], confronta: Callable[[T, T], int]) -> None:
+        """
+        Insertion Sort fatto a mano.
+
+        items
+        lista da ordinare in place
+
+        confronta(a, b)
+        deve ritornare
+        valore negativo se a deve venire prima di b
+        zero se equivalenti
+        valore positivo se a deve venire dopo b
+
+        Nota importante
+        Insertion sort è stabile se nel while usiamo una condizione stretta
+        cioè spostiamo solo quando corrente deve venire prima dell'elemento a sinistra
+        in questo modo gli elementi equivalenti mantengono l'ordine originale
+        """
+        for i in range(1, len(items)):
+            corrente = items[i]
+            j = i - 1
+
+            # Sposto a destra finché corrente deve stare prima di items[j]
+            while j >= 0 and confronta(corrente, items[j]) < 0:
+                items[j + 1] = items[j]
+                j -= 1
+
+            items[j + 1] = corrente
+
+    def _confronta_riga_classifica(self, a: RigaClassifica, b: RigaClassifica) -> int:
+        """
+        Criterio
+        1 vittorie decrescente
+        2 miglior punteggio decrescente
+        3 nome alfabetico crescente case insensitive
+        """
+        if a.vittorie != b.vittorie:
+            # Decrescente
+            return b.vittorie - a.vittorie
+
+        if a.miglior_punteggio != b.miglior_punteggio:
+            # Decrescente
+            return b.miglior_punteggio - a.miglior_punteggio
+
+        an = a.nome.lower()
+        bn = b.nome.lower()
+        if an < bn:
+            return -1
+        if an > bn:
+            return 1
+        return 0
+
+    def _confronta_best_singoli(self, a: Tuple[str, int, str], b: Tuple[str, int, str]) -> int:
+        """
+        Confronto per la lista di tuple (nome, punti, data) dei migliori punteggi singoli.
+
+        Criterio
+        1 punti decrescente
+        2 nome alfabetico crescente case insensitive
+        """
+        if a[1] != b[1]:
+            # Decrescente sui punti
+            return b[1] - a[1]
+
+        an = a[0].lower()
+        bn = b[0].lower()
+        if an < bn:
+            return -1
+        if an > bn:
+            return 1
+        return 0
+
+    def _confronta_righe_testo(self, a: Tuple[str, int, int, int, float, float], b: Tuple[str, int, int, int, float, float]) -> int:
+        """
+        Confronto per la lista di tuple usata in classifica_come_testo.
+
+        Struttura tuple
+        (nome, vittorie, partite_giocate, best, media, media_durata)
+
+        Criterio come nel sort originale
+        1 vittorie decrescente
+        2 best decrescente
+        3 media decrescente
+        4 nome alfabetico crescente case insensitive
+        """
+        if a[1] != b[1]:
+            return b[1] - a[1]
+
+        if a[3] != b[3]:
+            return b[3] - a[3]
+
+        if a[4] != b[4]:
+            # Decrescente
+            if a[4] < b[4]:
+                return 1
+            return -1
+
+        an = a[0].lower()
+        bn = b[0].lower()
+        if an < bn:
+            return -1
+        if an > bn:
+            return 1
+        return 0
+
+
     def registra_partita(
         self,
         nome1: str,
@@ -170,10 +282,11 @@ class GestoreClassifica:
     def calcola_classifica(self) -> List[RigaClassifica]:
         """
         Calcola la classifica aggregando i dati di tutte le partite.
-        Criterio di ordinamento:
-        1) vittorie decrescente
-        2) miglior punteggio decrescente
-        3) nome alfabetico
+
+        Criterio di ordinamento
+        1 vittorie decrescente
+        2 miglior punteggio decrescente
+        3 nome alfabetico
         """
         partite = self.leggi_partite()
         if not partite:
@@ -210,6 +323,7 @@ class GestoreClassifica:
             elif p.vincitore == p.nome2:
                 stats[p.nome2]["vittorie"] += 1
             else:
+                # Caso pareggio o vincitore non valido
                 pass
 
         righe: List[RigaClassifica] = []
@@ -227,7 +341,8 @@ class GestoreClassifica:
                 )
             )
 
-        righe.sort(key=lambda r: (-r.vittorie, -r.miglior_punteggio, r.nome.lower()))
+        # Ordinamento manuale con Insertion Sort
+        self._insertion_sort_in_place(righe, self._confronta_riga_classifica)
         return righe
 
     def _formatta_data_breve(self, data_iso: str) -> str:
@@ -238,6 +353,9 @@ class GestoreClassifica:
             return data_iso
 
     def _migliori_punteggi_singoli(self) -> List[Tuple[str, int, str]]:
+        """
+        Restituisce una lista di tuple (nome, punti_massimi, data_breve) per ogni giocatore.
+        """
         partite = self.leggi_partite()
         best: Dict[str, Tuple[int, str]] = {}
 
@@ -251,7 +369,9 @@ class GestoreClassifica:
                 best[p.nome2] = (p.punti2, d)
 
         righe: List[Tuple[str, int, str]] = [(nome, punti, data) for nome, (punti, data) in best.items()]
-        righe.sort(key=lambda x: (-x[1], x[0].lower()))
+
+        # Ordinamento manuale con Insertion Sort
+        self._insertion_sort_in_place(righe, self._confronta_best_singoli)
         return righe
 
     def ultime_partite_come_testo(self, max_righe: int = 10) -> str:
@@ -305,6 +425,13 @@ class GestoreClassifica:
         return "\n".join(out)
 
     def classifica_come_testo(self, max_righe: int = 20) -> str:
+        """
+        Genera una classifica in formato testo con tabella.
+
+        Modifica rispetto alla versione precedente
+        Prima usavamo list.sort con key.
+        Ora ordiniamo manualmente con Insertion Sort.
+        """
         partite = self.leggi_partite()
         if not partite:
             return "Nessuna partita registrata."
@@ -354,7 +481,10 @@ class GestoreClassifica:
             media_durata = (float(s["somma_durata"]) / partite_giocate) if partite_giocate > 0 else 0.0
             righe.append((nome, vittorie, partite_giocate, best, media, media_durata))
 
-        righe.sort(key=lambda x: (-x[1], -x[3], -x[4], x[0].lower()))
+        # Ordinamento manuale con Insertion Sort
+        self._insertion_sort_in_place(righe, self._confronta_righe_testo)
+
+        # Taglio alle prime max_righe come nella versione originale
         righe = righe[:max_righe]
 
         headers = ["Pos", "Nome", "Vittorie", "Partite", "Best", "Media", "Durata media"]
