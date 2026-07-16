@@ -1,159 +1,165 @@
 from breezypythongui import EasyFrame
 from tkinter import Button
 from PIL import Image, ImageTk
-from GestoreClassifica import GestoreClassifica
+from LeaderboardManager import LeaderboardManager
 import sys
 import os
 import tkinter as tk
 import pygame
 
 try:
-    from tesori_nascosti_gui import TesoriNascosti
+    from hidden_treasures_gui import HiddenTreasures
 except ImportError:
-    TesoriNascosti = None 
+    HiddenTreasures = None 
 
-class MenuPrincipale(EasyFrame):
+class MainMenu(EasyFrame):
     """
-    Questa classe rappresenta la finestra di avvio dell'applicazione.
-    Gestisce l'interfaccia grafica del menu principale, includendo
-    l'immagine di copertina, la musica di sottofondo e il pulsante per iniziare.
+    This class represents the startup window of the application.
+    It manages the graphical interface of the main menu, including
+    the cover image, background music, and the play button.
     """
     def __init__(self):
-        super().__init__("Tesori Nascosti - Menu")
-        self.master.state('zoomed')                # Imposta la finestra a schermo intero
+        super().__init__("Hidden Treasures - Menu")
+        self.master.state('zoomed')  # Sets window to fullscreen
         
-        # Recupera le dimensioni effettive dello schermo dell'utente per adattare la grafica
-        larghezza_schermo = self.master.winfo_screenwidth()
-        altezza_schermo = self.master.winfo_screenheight() 
+        # Retrieves user's screen dimensions to scale the graphics
+        screen_width = self.master.winfo_screenwidth()
+        screen_height = self.master.winfo_screenheight() 
 
-        # Restituisce il percorso per l'immagine del menu principale in modo sicuro
-        percorso = os.path.join("Immagini_mazzo", "copertina.png")
+        # Safe path for cover image
+        path = os.path.join("deck_images", "cover.png")
         try:
-            immagine = Image.open(percorso)
-            # Ridimensiono l'immagine per adattarla perfettamente alla risoluzione dello schermo
-            # Uso LANCZOS per mantenere un'alta qualità durante il ridimensionamento
-            immagine_ridimensionata = immagine.resize((larghezza_schermo, altezza_schermo), Image.Resampling.LANCZOS)
-            self.foto = ImageTk.PhotoImage(immagine_ridimensionata)
+            image = Image.open(path)
+            # Resizes image to fit screen resolution using LANCZOS filter
+            resized_image = image.resize((screen_width, screen_height), Image.Resampling.LANCZOS)
+            self.photo = ImageTk.PhotoImage(resized_image)
         except Exception as e:
-            self.messageBox("Errore Immagine", f"Errore: {e}")
-            sys.exit()      # Se manca l'immagine, il programma si chiude
+            self.messageBox("Image Error", f"Error: {e}")
+            sys.exit()  # If the cover image is missing, close the application
 
-        # Gestione della musica di sottofondo tramite la libreria pygame
+        # Background music management using pygame mixer
         try:
             pygame.mixer.init()
 
-            percorso_musica = os.path.join("Audio", "musica_sottofondo.mp3")
-            pygame.mixer.music.load(percorso_musica)
-            pygame.mixer.music.set_volume(0.2)      # Impostazione volume
-            pygame.mixer.music.play(-1)       # Il parametro -1 indica che la musica andrà in loop infinito
+            music_path = os.path.join("audio", "background_music.mp3")
+            pygame.mixer.music.load(music_path)
+            pygame.mixer.music.set_volume(0.2)  # Set volume
+            pygame.mixer.music.play(-1)         # -1 means loop infinitely
         except Exception as e:
-            print(f"Impossibile caricare la musica: {e}")      # Se l'audio fallisce, il gioco parte comunque
+            print(f"Unable to load music: {e}")  # Play game anyway if audio fails
 
-        # Canvas per poter sovrapporre il pulsante all'immagine di sfondo
-        self.canvas = self.addCanvas(row = 0, column = 0, width = larghezza_schermo, height = altezza_schermo)
-        self.canvas.create_image(0, 0, image = self.foto, anchor = "nw")
+        # Canvas to overlay button on top of background image
+        self.canvas = self.addCanvas(row=0, column=0, width=screen_width, height=screen_height)
+        self.canvas.create_image(0, 0, image=self.photo, anchor="nw")
         
-        # Calcolo del centro dello schermo per posizionare il bottone
-        centro_x = larghezza_schermo / 2
-        centro_y = altezza_schermo / 2 
+        # Calculate screen center to position the play button
+        center_x = screen_width / 2
+        center_y = screen_height / 2 
         
-        # Pulsante "GIOCA" con font e colori personalizzati
-        self.pulsante_gioca = Button(self.canvas, text = "GIOCA", command = self.avvia_gioco, font=("Verdana", 16, "bold"), background = "#FFC125", foreground = "#8B4513", borderwidth = 3)
-        # Aggiunge il pulsante al canvas, spostandolo leggermente verso il basso
-        self.canvas.create_window(centro_x, centro_y + 110, window = self.pulsante_gioca, width = 220, height = 60)
+        # "PLAY" button with custom fonts and colors
+        self.play_button = Button(
+            self.canvas,
+            text="PLAY",
+            command=self.start_game,
+            font=("Verdana", 16, "bold"),
+            background="#FFC125",
+            foreground="#8B4513",
+            borderwidth=3
+        )
+        # Position play button slightly below center
+        self.canvas.create_window(center_x, center_y + 110, window=self.play_button, width=220, height=60)
 
-    def avvia_gioco(self):
+    def start_game(self):
         """
-        Metodo collegato al pulsante Gioca.
-        Chiude la finestra del menu e apre la finestra della partita.
+        Method linked to the PLAY button.
+        Closes the menu window and opens the game board window.
         """
-        if TesoriNascosti:
+        if HiddenTreasures:
             self.destroy()
-            app = TesoriNascosti()
+            app = HiddenTreasures()
             app.mainloop()
         else:
-            self.messageBox("Errore", "Non trovo il file del gioco!")
+            self.messageBox("Error", "Cannot find the game file!")
 
 
-class Classifica(EasyFrame):
+class Leaderboard(EasyFrame):
     """
-    Questa classe gestisce la visualizzazione della classifica.
-    Legge i dati salvati su file e li mostra all'interno di una listbox.
+    This class manages the display of the leaderboard.
+    Reads saved data from a file and shows it in a listbox.
     """
     def __init__(self):
-        super().__init__("Tesori Nascosti - Classifica")
+        super().__init__("Hidden Treasures - Leaderboard")
         self.master.state('zoomed')
-        self.master.update()       # Aggiorna la finestra per assicurarsi che le dimensioni siano calcolate correttamente
+        self.master.update()  # Refresh window to ensure correct dimensions are calculated
        
-        # Recupera le dimensioni della finestra attuale
-        larghezza_schermo = self.master.winfo_width()
-        altezza_schermo = self.master.winfo_height()
+        # Retrieve current window size
+        screen_width = self.master.winfo_width()
+        screen_height = self.master.winfo_height()
        
-        # Ottiene il percorso assoluto della cartella in cui si trova questo script
+        # Absolute path of script directory
         base_dir = os.path.dirname(os.path.abspath(__file__))
        
-        percorso_sfondo = os.path.join(base_dir, "Immagini_mazzo", "sfondo_classifica.png")
+        background_path = os.path.join(base_dir, "deck_images", "leaderboard_background.png")
+        data_path = os.path.join(base_dir, "leaderboard.txt")
 
-        percorso_dati = os.path.join(base_dir, "classifica.txt")
-
-        # Caricamento e ridimensionamento dello sfondo specifico per la classifica
+        # Load and resize background image
         try:
-            immagine = Image.open(percorso_sfondo)
-            immagine_ridimensionata = immagine.resize((larghezza_schermo, altezza_schermo), Image.Resampling.LANCZOS)
-            self.foto = ImageTk.PhotoImage(immagine_ridimensionata)
+            image = Image.open(background_path)
+            resized_image = image.resize((screen_width, screen_height), Image.Resampling.LANCZOS)
+            self.photo = ImageTk.PhotoImage(resized_image)
         except Exception as e:
-            self.messageBox("Errore Immagine", f"Errore caricamento sfondo: {e}")
+            self.messageBox("Image Error", f"Error loading background: {e}")
             sys.exit()
 
-        self.canvas = self.addCanvas(row = 0, column = 0, width = larghezza_schermo, height = altezza_schermo)
-        self.canvas.create_image(0, 0, image = self.foto, anchor = "nw")
+        self.canvas = self.addCanvas(row=0, column=0, width=screen_width, height=screen_height)
+        self.canvas.create_image(0, 0, image=self.photo, anchor="nw")
        
-        centro_x = larghezza_schermo / 2
-        centro_y = altezza_schermo / 2
+        center_x = screen_width / 2
+        center_y = screen_height / 2
        
-        # Creazione della Listbox che conterrà le righe della classifica.
-        self.lista_punteggi = tk.Listbox(
+        # Listbox to display leaderboard rows
+        self.scores_listbox = tk.Listbox(
             self.canvas,
-            font = ("Courier", 13, "bold"),
-            background = "#F5DEB3",     
-            foreground = "#4B3621",     
-            borderwidth = 0,              
-            highlightthickness = 0,    # Rimuove il bordo di selezione automatico per non rovinare la grafica della pergamena
-            activestyle = "none"       # Rimuove la sottolineatura quando si clicca una riga
+            font=("Courier", 13, "bold"),
+            background="#F5DEB3",     
+            foreground="#4B3621",     
+            borderwidth=0,              
+            highlightthickness=0,  # Remove selection border
+            activestyle="none"     # Remove underline on click
         )
 
-        # Usa la classe GestoreClassifica per leggere e formattare i dati dal file di testo
-        gestore = GestoreClassifica(percorso_dati)
-        testo_completo = gestore.classifica_come_testo()
+        # Uses LeaderboardManager to read and format data from text file
+        manager = LeaderboardManager(data_path)
+        full_text = manager.leaderboard_as_text()
        
-       # Inserisce ogni riga restituita dal gestore all'interno della Listbox
-        righe = testo_completo.split("\n")
-        for riga in righe:
-            if riga.strip():        # Controllo per evitare di inserire righe vuote
-                self.lista_punteggi.insert(tk.END, riga)
+        # Insert each row into Listbox
+        rows = full_text.split("\n")
+        for row in rows:
+            if row.strip():  # Skip empty lines
+                self.scores_listbox.insert(tk.END, row)
 
-        # Posiziona la listbox al centro dello schermo
-        self.canvas.create_window(centro_x, centro_y, window=self.lista_punteggi, width=700, height=350)
+        # Center Listbox on screen
+        self.canvas.create_window(center_x, center_y, window=self.scores_listbox, width=700, height=350)
        
-        # Pulsante per tornare indietro al menu
-        self.pulsante_menu_principale = Button(
+        # Main Menu button
+        self.main_menu_button = Button(
             self.canvas,
-            text = "MENU PRINCIPALE",
-            command = self.torna_al_menu_principale,
+            text="MAIN MENU",
+            command=self.return_to_main_menu,
             font=("Verdana", 16, "bold"),
-            background = "#FFC125",
-            foreground = "#8B4513",
-            borderwidth = 3
+            background="#FFC125",
+            foreground="#8B4513",
+            borderwidth=3
         )
-        self.canvas.create_window(centro_x, centro_y + 220, window = self.pulsante_menu_principale, width = 250, height = 60)
+        self.canvas.create_window(center_x, center_y + 220, window=self.main_menu_button, width=250, height=60)
 
-    def torna_al_menu_principale(self):
-        """Chiude la classifica e riapre il menu principale"""
+    def return_to_main_menu(self):
+        """Closes leaderboard and reopens main menu"""
         self.destroy()
-        from main import MenuPrincipale
-        app = MenuPrincipale()
+        from main import MainMenu
+        app = MainMenu()
         app.mainloop()
 
 if __name__ == "__main__":
-    app = MenuPrincipale()
+    app = MainMenu()
     app.mainloop()

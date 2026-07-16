@@ -564,7 +564,7 @@ class EasyCanvas(Tkinter.Canvas):
         self.bind("<ButtonPress-1>", self.mousePressed)
         self.bind("<ButtonRelease-1>", self.mouseReleased)
         self.bind("<B1-Motion>", self.mouseDragged)
-        ##############TASTO DESTRO DEL MOUSE##############
+        ##############RIGHT MOUSE BUTTON##############
         #self.bind("<B3-Motion>", self.mouseRDragged)
         self.bind("<ButtonPress-3>", self.mouseRPressed)
         #self.bind("<ButtonRelease-3>", self.mouseRReleased)
