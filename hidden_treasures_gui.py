@@ -650,6 +650,352 @@ class HiddenTreasures(EasyFrame):
         resized_image = pil_image.resize((55, 70), Image.Resampling.LANCZOS)
         return ImageTk.PhotoImage(resized_image)
 
+    def disable_human_interaction(self):
+        """
+        Disables human interaction buttons and card grid buttons during bot turns.
+        """
+        self.button_accept["state"] = "disabled"
+        self.button_reject["state"] = "disabled"
+        self.button_swap["state"] = "disabled"
+        self.button_conclude["state"] = "disabled"
+        for button in self.buttons:
+            button["state"] = "disabled"
+
+    def get_hand_potential_score(self, hand, strategy):
+        """
+        Calculates a heuristic score representing the potential value of the hand.
+        """
+        if not hand:
+            return 0
+        from collections import Counter
+        
+        # Base combination score using the existing validator
+        combo_score = self.validator.calculate_combo_score(hand)
+        
+        potential = 0
+        
+        # Get numeric values of the standard cards
+        values = [c.value for c in hand if c.value is not None]
+        val_counts = Counter(values)
+        
+        # Get suits of the standard cards
+        suits = [c.suit for c in hand if c.suit is not None]
+        suit_counts = Counter(suits)
+        
+        if strategy == "value":
+            # Value-based strategy (Gem acquired): focus exclusively on Pairs, Tris, Full, Poker
+            for val, count in val_counts.items():
+                if count == 2:
+                    potential += 15
+                elif count == 3:
+                    potential += 40
+                elif count >= 4:
+                    potential += 70
+        else:
+            # Default strategy: both value and suit/straights
+            for val, count in val_counts.items():
+                if count == 2:
+                    potential += 10
+                elif count == 3:
+                    potential += 30
+                elif count >= 4:
+                    potential += 60
+            
+            # Flush potential
+            for suit, count in suit_counts.items():
+                if count >= 2:
+                    potential += count * 6
+                    
+            # Straight potential
+            sorted_vals = sorted(list(set(values)))
+            if len(sorted_vals) >= 2:
+                for i in range(len(sorted_vals) - 1):
+                    if sorted_vals[i+1] - sorted_vals[i] < 5:
+                        potential += 4
+                        
+        return combo_score * 100 + potential
+
+    def get_weakest_card_index(self, hand, strategy):
+        """
+        Finds the index of the weakest card in hand by checking which card's removal
+        leaves the hand with the highest remaining potential score.
+        """
+        best_score = -1
+        weakest_idx = 0
+        for i in range(len(hand)):
+            temp_hand = hand[:i] + hand[i+1:]
+            score = self.get_hand_potential_score(temp_hand, strategy)
+            if score > best_score:
+                best_score = score
+                weakest_idx = i
+        return weakest_idx
+
+    def bot_take_turn(self):
+        """
+        Executes the bot's turn using the heuristic algorithm.
+        """
+        if self.turn_index != 1 or self.players[1].concluded or self.players[1].action_points <= 0:
+            return
+
+        bot_player = self.players[1]
+        hand = bot_player.hand
+        ap = bot_player.action_points
+        
+        # Strategy detection: pivot if Gem is in hand
+        has_gem = any(c.special_type in ["Gem", "G"] for c in hand)
+        strategy = "value" if has_gem else "any"
+
+        # Conclude check:
+        # Automatically use 'Conclude' when hand is full and no further improvements are viable without wasting too many AP.
+        if len(hand) == 5:
+            current_score = self.validator.calculate_combo_score(hand)
+            # If hand is excellent or AP is low, conclude
+            if current_score >= 25 or ap <= 6:
+                self.bot_conclude()
+                return
+
+        # Ensure bot_memory exists
+        if not hasattr(self, "bot_memory"):
+            self.bot_memory = {}
+
+        # 1. Evaluate memory first
+        best_memorized_idx = -1
+        best_memorized_score = -1
+        
+        # Only consider memorized cards that are still available on the grid
+        available_memorized = {idx: card for idx, card in self.bot_memory.items() if idx not in self.ownership_map}
+        
+        for idx, card in available_memorized.items():
+            if len(hand) < 5:
+                curr_pot = self.get_hand_potential_score(hand, strategy)
+                new_pot = self.get_hand_potential_score(hand + [card], strategy)
+                if new_pot > curr_pot and new_pot > best_memorized_score:
+                    best_memorized_score = new_pot
+                    best_memorized_idx = idx
+            else:
+                curr_pot = self.get_hand_potential_score(hand, strategy)
+                for h_idx in range(len(hand)):
+                    temp_hand = hand[:h_idx] + hand[h_idx+1:] + [card]
+                    new_pot = self.get_hand_potential_score(temp_hand, strategy)
+                    if new_pot > curr_pot and new_pot > best_memorized_score:
+                        best_memorized_score = new_pot
+                        best_memorized_idx = idx
+
+        # Target memorized card if it improves the hand
+        if best_memorized_idx != -1:
+            self.selected_card_index = best_memorized_idx
+            card_obj = self.drawn_cards_grid[best_memorized_idx]
+            card_obj.flip_card()
+            self.buttons[best_memorized_idx]["bg"] = "#FC7868"
+            path = self.get_image_path(card_obj)
+            photo = self.load_image(path)
+            self.buttons[best_memorized_idx]["image"] = photo
+            self.buttons[best_memorized_idx].image = photo
+            
+            self.after(1500, lambda: self.bot_decide_action(card_obj))
+            return
+
+        # 2. Pick a random face-down card
+        available_idxs = [i for i, c in enumerate(self.drawn_cards_grid) if i not in self.ownership_map and not c.revealed_permanently]
+        if not available_idxs:
+            self.bot_conclude()
+            return
+            
+        import random
+        chosen_idx = random.choice(available_idxs)
+        self.selected_card_index = chosen_idx
+        
+        card_obj = self.drawn_cards_grid[chosen_idx]
+        card_obj.flip_card()
+        self.buttons[chosen_idx]["bg"] = "#FC7868"
+        path = self.get_image_path(card_obj)
+        photo = self.load_image(path)
+        self.buttons[chosen_idx]["image"] = photo
+        self.buttons[chosen_idx].image = photo
+        
+        self.after(1500, lambda: self.bot_decide_action(card_obj))
+
+    def bot_decide_action(self, card_obj):
+        """
+        Decides and executes the bot's action after a card is revealed.
+        """
+        bot_player = self.players[1]
+        hand = bot_player.hand
+        ap = bot_player.action_points
+        has_gem = any(c.special_type in ["Gem", "G"] for c in hand)
+        strategy = "value" if has_gem else "any"
+
+        # The Coin: Always Accept
+        if card_obj.special_type in ["Coin", "M"]:
+            self.bot_accept_action()
+            return
+
+        # The Gem: Top Priority
+        if card_obj.special_type in ["Gem", "G"]:
+            if len(hand) < 5:
+                self.bot_accept_action()
+            else:
+                weakest_idx = self.get_weakest_card_index(hand, strategy)
+                self.bot_swap_action(weakest_idx)
+            return
+
+        # The Scroll: Accept if AP > 8, otherwise reject
+        if card_obj.special_type in ["Scroll", "P"]:
+            if ap > 8:
+                self.bot_accept_scroll_action()
+            else:
+                self.bot_reject_action()
+            return
+
+        # Standard card logic
+        if len(hand) == 0:
+            self.bot_accept_action()
+            return
+
+        curr_pot = self.get_hand_potential_score(hand, strategy)
+        if len(hand) < 5:
+            new_pot = self.get_hand_potential_score(hand + [card_obj], strategy)
+            if new_pot > curr_pot:
+                self.bot_accept_action()
+            else:
+                # Reject useless card only if AP budget safely exceeds missing cards count
+                missing_cards = 5 - len(hand)
+                if ap - 1 > missing_cards:
+                    self.bot_reject_action()
+                else:
+                    self.bot_accept_action()
+        else:
+            # Hand is full, evaluate swap
+            best_swap_idx = -1
+            best_pot = curr_pot
+            for idx, h_card in enumerate(hand):
+                temp_hand = hand[:idx] + hand[idx+1:] + [card_obj]
+                pot = self.get_hand_potential_score(temp_hand, strategy)
+                if pot > best_pot:
+                    best_pot = pot
+                    best_swap_idx = idx
+            
+            if best_swap_idx != -1:
+                self.bot_swap_action(best_swap_idx)
+            else:
+                self.bot_reject_action()
+
+    def bot_accept_action(self):
+        """
+        Bot executes the accept action for the currently selected card.
+        """
+        bot_player = self.players[1]
+        bot_player.action_points -= 1
+        taken_card = self.drawn_cards_grid[self.selected_card_index]
+        bot_player.add_card(taken_card)
+        self.buttons[self.selected_card_index]["state"] = "disabled"
+        self.ownership_map[self.selected_card_index] = 1
+        
+        if taken_card.special_type in ["Coin", "M"]:
+            bot_player.action_points += 1
+            
+        # Pacing: Wait 1.5 seconds before passing the turn so the user sees the card accepted
+        self.after(1500, self.change_turn)
+
+    def bot_reject_action(self):
+        """
+        Bot executes the reject action, turning the card back face-down.
+        """
+        bot_player = self.players[1]
+        bot_player.action_points -= 1
+        rejected_card = self.drawn_cards_grid[self.selected_card_index]
+        
+        # Pacing: Let the user see the rejected card state for 1.5 seconds before passing turn
+        def perform_reject():
+            rejected_card.flip_card()
+            self.change_turn()
+        self.after(1500, perform_reject)
+
+    def bot_swap_action(self, hand_card_idx):
+        """
+        Bot swaps the currently selected card with the card at hand_card_idx.
+        """
+        bot_player = self.players[1]
+        bot_player.action_points -= 2
+        
+        old_card = bot_player.hand[hand_card_idx]
+        old_grid_idx = -1
+        for idx, owner in self.ownership_map.items():
+            if owner == 1 and self.drawn_cards_grid[idx] == old_card:
+                old_grid_idx = idx
+                break
+                
+        # Highlight both buttons temporarily (keep them face-down)
+        if old_grid_idx != -1:
+            self.buttons[old_grid_idx]["bg"] = "#FFFF00" # Yellow highlight
+            self.buttons[self.selected_card_index]["bg"] = "#FFFF00" # Yellow highlight
+            
+        def perform_swap():
+            bot_player.remove_card(old_card)
+            new_card = self.drawn_cards_grid[self.selected_card_index]
+            bot_player.add_card(new_card)
+            
+            if old_grid_idx != -1:
+                del self.ownership_map[old_grid_idx]
+                self.buttons[old_grid_idx]["bg"] = self.default_bg
+                
+            self.ownership_map[self.selected_card_index] = 1
+            self.buttons[self.selected_card_index]["state"] = "disabled"
+            
+            if new_card.special_type in ["Scroll", "P"]:
+                self.bot_trigger_scroll_effect()
+                return
+                
+            self.change_turn()
+            
+        self.after(1500, perform_swap)
+
+    def bot_accept_scroll_action(self):
+        """
+        Bot accepts a Scroll and triggers its effect.
+        """
+        bot_player = self.players[1]
+        bot_player.action_points -= 1
+        taken_card = self.drawn_cards_grid[self.selected_card_index]
+        bot_player.add_card(taken_card)
+        self.buttons[self.selected_card_index]["state"] = "disabled"
+        self.ownership_map[self.selected_card_index] = 1
+        
+        # Pacing: Let the user see the scroll card action for 1.5 seconds before triggering its effect
+        self.after(1500, self.bot_trigger_scroll_effect)
+
+    def bot_trigger_scroll_effect(self):
+        """
+        Selects a random face-down card to reveal permanently and memorizes it.
+        """
+        face_down_idxs = [i for i, c in enumerate(self.drawn_cards_grid) if i not in self.ownership_map and not c.revealed_permanently]
+        if face_down_idxs:
+            import random
+            reveal_idx = random.choice(face_down_idxs)
+            card_obj = self.drawn_cards_grid[reveal_idx]
+            card_obj.reveal_permanently()
+            
+            if not hasattr(self, "bot_memory"):
+                self.bot_memory = {}
+            self.bot_memory[reveal_idx] = card_obj
+            
+            path = self.get_image_path(card_obj)
+            photo = self.load_image(path)
+            self.buttons[reveal_idx]["image"] = photo
+            self.buttons[reveal_idx].image = photo
+            
+            # Pacing: Let the user see the Scroll-revealed card for 2.0 seconds before passing turn
+            self.after(2000, self.change_turn)
+        else:
+            self.change_turn()
+
+    def bot_conclude(self):
+        """
+        Bot concludes its round.
+        """
+        self.players[1].concluded = True
+        self.change_turn()
+
     def return_to_main_menu(self):
         """
         Closes current game and returns to the main menu.
