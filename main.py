@@ -72,11 +72,49 @@ class MainMenu(EasyFrame):
     def start_game(self):
         """
         Method linked to the PLAY button.
-        Closes the menu window and opens the game board window.
+        Hides the PLAY button and displays mode selection buttons.
         """
+        self.play_button.destroy()
+        
+        screen_width = self.master.winfo_screenwidth()
+        screen_height = self.master.winfo_screenheight()
+        center_x = screen_width / 2
+        center_y = screen_height / 2 
+        
+        self.single_player_button = Button(
+            self.canvas,
+            text="SINGLE PLAYER",
+            command=self.start_single_player,
+            font=("Verdana", 14, "bold"),
+            background="#FFC125",
+            foreground="#8B4513",
+            borderwidth=3
+        )
+        self.two_player_button = Button(
+            self.canvas,
+            text="TWO PLAYERS",
+            command=self.start_two_players,
+            font=("Verdana", 14, "bold"),
+            background="#FFC125",
+            foreground="#8B4513",
+            borderwidth=3
+        )
+        
+        self.canvas.create_window(center_x - 130, center_y + 110, window=self.single_player_button, width=220, height=60)
+        self.canvas.create_window(center_x + 130, center_y + 110, window=self.two_player_button, width=220, height=60)
+
+    def start_single_player(self):
         if HiddenTreasures:
             self.destroy()
-            app = HiddenTreasures()
+            app = HiddenTreasures(game_mode="single")
+            app.mainloop()
+        else:
+            self.messageBox("Error", "Cannot find the game file!")
+
+    def start_two_players(self):
+        if HiddenTreasures:
+            self.destroy()
+            app = HiddenTreasures(game_mode="two")
             app.mainloop()
         else:
             self.messageBox("Error", "Cannot find the game file!")

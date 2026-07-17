@@ -14,7 +14,8 @@ class NameDialog(EasyDialog):
     This class manages a modal dialog window that appears at startup.
     It forces the two players to enter their names before starting.
     """
-    def __init__(self, parent):
+    def __init__(self, parent, game_mode="two"):
+         self.game_mode = game_mode
          super().__init__(parent, "Player Registration")
     
     def body(self, master):
@@ -69,10 +70,11 @@ class HiddenTreasures(EasyFrame):
     Manages the entire game logic, the card grid,
     turns, scores, and user interactions.
     """
-    def __init__(self, title="Hidden Treasures", width=1000, height=1000, background="#008000"):
+    def __init__(self, title="Hidden Treasures", width=1000, height=1000, background="#008000", game_mode="two"):
         super().__init__(title, width, height, background)
        
         # Object Initialization
+        self.game_mode = game_mode
         self.game_deck = Deck()
         self.validator = Validator()
         self.leaderboard_manager = LeaderboardManager("leaderboard.txt")
@@ -136,7 +138,7 @@ class HiddenTreasures(EasyFrame):
         """
         Opens the name registration dialog. If confirmed, initializes the match.
         """
-        dialog = NameDialog(self)
+        dialog = NameDialog(self, game_mode=self.game_mode)
         if dialog.modified():
             self.label_timer["text"] = "Time: 0s"
             n1, n2 = dialog.result
