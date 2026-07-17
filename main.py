@@ -20,7 +20,7 @@ class MainMenu(EasyFrame):
     """
     def __init__(self):
         super().__init__("Hidden Treasures - Menu")
-        self.master.state('zoomed')  # Sets window to fullscreen
+        self.master.attributes('-fullscreen', True)  # Sets window to fullscreen
         
         # Retrieves user's screen dimensions to scale the graphics
         screen_width = self.master.winfo_screenwidth()
