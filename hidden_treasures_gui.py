@@ -119,7 +119,7 @@ class HiddenTreasures(EasyFrame):
 
         # GUI Creation
 
-        # Top panel with info labels, round number, and menu
+        # Bottom panel or top panel config
         label_grid_panel = self.addPanel(row=0, column=0, columnspan=4, background="#008000")
         self.label_info = label_grid_panel.addLabel(text="Waiting for players...", row=0, column=0, columnspan=2)
         self.label_info["anchor"] = "w"      
@@ -212,6 +212,7 @@ class HiddenTreasures(EasyFrame):
         self.ownership_map = {}
         self.selected_card_index = None
         self.swap_phase = False
+        self.bot_memory = {}
 
         # Reset grid buttons visually
         for button in self.buttons:
@@ -222,6 +223,9 @@ class HiddenTreasures(EasyFrame):
         for p in self.players:
             p.reset_round()
         self.manage_turn()
+        if self.game_mode == "single" and self.turn_index == 1:
+            self.disable_human_interaction()
+            self.after(1500, self.bot_take_turn)
 
     def manage_turn(self): 
         """
