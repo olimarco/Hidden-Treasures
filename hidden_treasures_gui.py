@@ -95,6 +95,7 @@ class HiddenTreasures(EasyFrame):
             
         # Object Initialization
         self.game_mode = game_mode
+        self.bot_memory = {}
         self.game_deck = Deck()
         self.validator = Validator()
         self.leaderboard_manager = LeaderboardManager("leaderboard.txt")
@@ -315,8 +316,14 @@ class HiddenTreasures(EasyFrame):
                     button["bg"] = "#FC7868" 
                 button["state"] = "disabled"
 
-                # Card is only seen face up by its owner
-                if owner == active_index:
+                # Card is only seen face up by its owner (in two-player mode)
+                # In single-player, human (owner 0) always sees their cards face up, and bot (owner 1) always keeps theirs face down.
+                if self.game_mode == "single":
+                    visible_to_viewer = (owner == 0)
+                else:
+                    visible_to_viewer = (owner == active_index)
+
+                if visible_to_viewer:
                     path = self.get_image_path(card_obj)
                     photo = self.load_image(path)
                     button["image"] = photo
@@ -340,6 +347,9 @@ class HiddenTreasures(EasyFrame):
                 else:
                     button["state"] = "disabled"     
         self.manage_turn()
+        if self.game_mode == "single" and self.turn_index == 1:
+            self.disable_human_interaction()
+            self.after(1500, self.bot_take_turn)
     
     def reveal_card(self, card_index):
         """
@@ -384,7 +394,8 @@ class HiddenTreasures(EasyFrame):
                 # Check effects of the newly acquired card
                 if new_card.special_type in ["Scroll", "P"]:
                     self.scroll_phase = True
-                    self.messageBox(title="Scroll Effect", message="You swapped for a Scroll!\nClick on a card on the grid to reveal it permanently.")
+                    if not (self.game_mode == "single" and self.turn_index == 1):
+                        self.messageBox(title="Scroll Effect", message="You swapped for a Scroll!\nClick on a card on the grid to reveal it permanently.")
                     return
                 self.change_turn()
             return
@@ -429,11 +440,13 @@ class HiddenTreasures(EasyFrame):
             # Instant effects of special cards
             if taken_card.special_type in ["Coin", "M"]:
                 current_player.action_points += 1
-                self.messageBox(title="Coin!", message="You collected a Coin!\nYou gain +1 extra Action Point.")
+                if not (self.game_mode == "single" and self.turn_index == 1):
+                    self.messageBox(title="Coin!", message="You collected a Coin!\nYou gain +1 extra Action Point.")
             
             if taken_card.special_type in ["Scroll", "P"]:
                 self.scroll_phase = True
-                self.messageBox(title="Scroll Effect", message="You found a Scroll!\nClick on a face-down card on the grid to reveal it permanently.")
+                if not (self.game_mode == "single" and self.turn_index == 1):
+                    self.messageBox(title="Scroll Effect", message="You found a Scroll!\nClick on a face-down card on the grid to reveal it permanently.")
                 return
 
         self.change_turn()
