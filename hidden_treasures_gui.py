@@ -12,7 +12,8 @@ import os
 class NameDialog(EasyDialog):
     """
     This class manages a modal dialog window that appears at startup.
-    It forces the two players to enter their names before starting.
+    It forces the players to enter their names before starting.
+    Supports both Single Player (Human vs Bot) and Two Players modes.
     """
     def __init__(self, parent, game_mode="two"):
          self.game_mode = game_mode
@@ -24,8 +25,11 @@ class NameDialog(EasyDialog):
         """
         self.addLabel(master, text="Player 1, enter your name", row=0, column=0)
         self.field_p1 = self.addTextField(master, text="", row=0, column=1)
-        self.addLabel(master, text="Player 2, enter your name", row=1, column=0)
-        self.field_p2 = self.addTextField(master, text="", row=1, column=1)
+        if self.game_mode == "two":
+            self.addLabel(master, text="Player 2, enter your name", row=1, column=0)
+            self.field_p2 = self.addTextField(master, text="", row=1, column=1)
+        else:
+            self.field_p2 = None
     
     def validate(self):
         """
@@ -33,10 +37,14 @@ class NameDialog(EasyDialog):
         Returns False if there is an error, preventing the dialog from closing.
         """
         n1 = self.field_p1.getText().strip()
-        n2 = self.field_p2.getText().strip()
-        if n1 == "" or n2 == "":
-            self.messageBox(title="Error: No Name Entered", message="Both players must register with a name.")
+        if n1 == "":
+            self.parent.messageBox(title="Error: No Name Entered", message="You must register with a name.")
             return False
+        if self.game_mode == "two":
+            n2 = self.field_p2.getText().strip()
+            if n2 == "":
+                self.parent.messageBox(title="Error: No Name Entered", message="Both players must register with a name.")
+                return False
         return True
     
     def apply(self):
@@ -45,7 +53,10 @@ class NameDialog(EasyDialog):
         Saves the entered names into a variable to be used by the main class.
         """
         name1 = self.field_p1.getText().strip()
-        name2 = self.field_p2.getText().strip()
+        if self.game_mode == "two":
+            name2 = self.field_p2.getText().strip()
+        else:
+            name2 = "Bot"
         self.result = (name1, name2)
         self.setModified()
 
@@ -73,6 +84,15 @@ class HiddenTreasures(EasyFrame):
     def __init__(self, title="Hidden Treasures", width=1000, height=1000, background="#008000", game_mode="two"):
         super().__init__(title, width, height, background)
        
+        # Get system default button background dynamically
+        try:
+            import tkinter as tk
+            temp_btn = tk.Button(self)
+            self.default_bg = temp_btn.cget("bg")
+            temp_btn.destroy()
+        except Exception:
+            self.default_bg = "#d9d9d9"
+            
         # Object Initialization
         self.game_mode = game_mode
         self.game_deck = Deck()
@@ -148,10 +168,10 @@ class HiddenTreasures(EasyFrame):
             self.round_number = 1
             self.label_round["text"] = "Round 1"
             # Reset button backgrounds
-            self.button_accept["bg"] = "SystemButtonFace"
-            self.button_reject["bg"] = "SystemButtonFace"
-            self.button_swap["bg"] = "SystemButtonFace"
-            self.button_conclude["bg"] = "SystemButtonFace"
+            self.button_accept["bg"] = self.default_bg
+            self.button_reject["bg"] = self.default_bg
+            self.button_swap["bg"] = self.default_bg
+            self.button_conclude["bg"] = self.default_bg
             # Start timer
             self.start_time = time.time()
             self.absolute_game_start = time.time()
@@ -194,7 +214,7 @@ class HiddenTreasures(EasyFrame):
 
         # Reset grid buttons visually
         for button in self.buttons:
-            button["bg"] = "SystemButtonFace"
+            button["bg"] = self.default_bg
             button["state"] = "normal"
         
         # Reset players' round states
@@ -305,7 +325,7 @@ class HiddenTreasures(EasyFrame):
                     button["image"] = back_photo
                     button.image = back_photo
             else:
-                button["bg"] = "SystemButtonFace"
+                button["bg"] = self.default_bg
                 if not card_obj.revealed_permanently:
                     button["image"] = back_photo
                     button.image = back_photo
@@ -359,7 +379,7 @@ class HiddenTreasures(EasyFrame):
 
                 # Free up the position of the old card
                 del self.ownership_map[card_index]
-                self.buttons[card_index]["bg"] = "SystemButtonFace"
+                self.buttons[card_index]["bg"] = self.default_bg
 
                 # Check effects of the newly acquired card
                 if new_card.special_type in ["Scroll", "P"]:
@@ -497,24 +517,24 @@ class HiddenTreasures(EasyFrame):
         # Check win condition
         if self.players[0].score < 110 and self.players[1].score < 110:
             self.label_info["text"] = "Waiting to start a new round..."
-            self.label_info["bg"] = "SystemButtonFace"
+            self.label_info["bg"] = self.default_bg
 
             # Reset grid visual
             path = self.get_image_path("red_card_back_8bit.png")
             photo = self.load_image(path)
             for button in self.buttons:
-                button["bg"] = "SystemButtonFace"
+                button["bg"] = self.default_bg
                 button["state"] = "normal"
                 button["image"] = photo
                 button.image = photo
             self.button_accept["state"] = "disabled"
-            self.button_accept["bg"] = "SystemButtonFace"
+            self.button_accept["bg"] = self.default_bg
             self.button_reject["state"] = "disabled"
-            self.button_reject["bg"] = "SystemButtonFace"
+            self.button_reject["bg"] = self.default_bg
             self.button_swap["state"] = "disabled"
-            self.button_swap["bg"] = "SystemButtonFace"
+            self.button_swap["bg"] = self.default_bg
             self.button_conclude["state"] = "disabled"
-            self.button_conclude["bg"] = "SystemButtonFace"
+            self.button_conclude["bg"] = self.default_bg
             self.messageBox(title=f"Round {self.round_number} Finished", message="No player has reached 110 points. You are about to start a new round.")
             
             # Alternate starting player
@@ -572,7 +592,7 @@ class HiddenTreasures(EasyFrame):
                 
             else:
                 text = "TIE!"
-                current_color = "SystemButtonFace"
+                current_color = self.default_bg
                 title = "ABSOLUTE TIE"
                 message = "The match ends in an absolute tie."
                 winner_name = "TIE"
@@ -581,13 +601,13 @@ class HiddenTreasures(EasyFrame):
         self.label_info["text"] = f"GAME OVER\n{text}"
         self.label_info["bg"] = current_color
         self.button_accept["state"] = "disabled"
-        self.button_accept["bg"] = "SystemButtonFace"
+        self.button_accept["bg"] = self.default_bg
         self.button_reject["state"] = "disabled"
-        self.button_reject["bg"] = "SystemButtonFace"
+        self.button_reject["bg"] = self.default_bg
         self.button_swap["state"] = "disabled"
-        self.button_swap["bg"] = "SystemButtonFace"
+        self.button_swap["bg"] = self.default_bg
         self.button_conclude["state"] = "disabled"
-        self.button_conclude["bg"] = "SystemButtonFace"
+        self.button_conclude["bg"] = self.default_bg
         for button in self.buttons:
             button["state"] = "disabled"
             
