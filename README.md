@@ -5,7 +5,7 @@
 Hidden Treasures is a game developed in Python with a graphical user interface implemented using breezypythongui.  
 The game is for two players and is played on a 6×6 grid of facedown cards. Each player must build a hand of 5 cards by managing their action points and using special cards to gain strategic advantages.
 
-Project Authors: Marco Oliveri
+Project Author: Marco Oliveri
 
 ## Installation
 
@@ -277,4 +277,15 @@ Implementation in `hidden_treasures_gui`.
 In the main menu, background music starts playing in a loop at a reduced volume.  
 Implementation in `main.py`.
 
+## Single Player Mode (Bot AI)
+
+The game includes a Single-Player mode against an automated bot (Player 2) managed by a heuristic state machine algorithm. When starting the game from the main menu, you can choose between the classic "Two Players" mode or "Single Player" mode.
+
+### Heuristic Algorithm Behavior
+The bot's artificial intelligence does not require neural networks or training time, but dynamically reacts to the game state and its resources:
+
+- **Base Rules**: If the hand is empty, the bot prioritizes the "Accept" action to build a playable base. It evaluates Action Point (AP) waste and uses "Reject" only if the AP budget exceeds a safety margin calculated on missing cards.
+- **Coin Management**: The bot instantly accepts the Coin, recognizing the mathematical advantage of the free extra AP.
+- **Gem Management (Strategic Pivot)**: When the bot reveals the Gem, obtaining it becomes its absolute priority. If the hand is full, it forces a "Change" action by discarding the card with the lowest potential. Once the Gem is obtained, the algorithm performs a "pivot": it abandons any attempt to build Straights or Flushes (not supported by the Gem) and exclusively collects cards with the same value to force a Three of a kind, Full house, or Four of a kind and maximize the score.
+- **Scroll Management (Memory)**: If the bot has a high AP budget (e.g. > 8), it will accept the Scroll, permanently revealing a card on the grid. The bot is equipped with "memory": in subsequent turns, before revealing random cards, it will check the card revealed by the Scroll. If useful to close a combo, it will directly target that coordinate.
 
